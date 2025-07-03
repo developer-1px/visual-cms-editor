@@ -4,14 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Visual CMS Editor - A SvelteKit-based content management system with visual editing capabilities.
+Visual CMS Editor - A next-generation headless visual CMS library that completely separates design and content, enabling safe visual editing without breaking designs.
 
 **Tech Stack:**
 - SvelteKit 2.16.0 with Svelte 5.0.0
 - TypeScript 5.0.0 (strict mode)
-- Tailwind CSS 4.0.0
-- Vite 6.2.6
+- Tailwind CSS 4.0.0 with Forms and Typography plugins
+- Vite 6.2.6 with WASM support
+- Loro CRDT for history and collaboration
 - Paraglide.js for i18n (Korean/English)
+- @floating-ui/dom for overlay positioning
 
 ## Development Commands
 
@@ -41,8 +43,11 @@ src/
 │   └── demo/        # Demo page with class-based selection system
 ├── lib/            # Reusable components and utilities
 │   ├── core/
+│   │   ├── history/    # Loro CRDT-based history management
 │   │   ├── selection/  # SelectionManager class implementation
 │   │   └── plugins/    # Plugin system (planned, not yet implemented)
+│   ├── components/
+│   │   └── Inspector.svelte  # Property inspector panel
 │   └── paraglide/      # I18n message functions
 ├── app.css         # Global styles (Tailwind CSS)
 ├── app.d.ts        # Global TypeScript types
@@ -54,24 +59,43 @@ src/
 - **Static Site Generation**: Uses `@sveltejs/adapter-static` with CSR-only mode
 - **Test Environments**: Separate configs for client (browser) and server (node)
 - **I18n**: Messages in `/messages/{locale}.json` (en, ko) with Paraglide.js
-- **Styling**: Tailwind CSS with Forms and Typography plugins
-- **Positioning**: @floating-ui/dom for overlay positioning
+- **Build Target**: ES2022 for modern browsers
+- **WASM Support**: Enabled for Loro CRDT functionality
 
 ### Current Implementation Status
 
 The project has **two parallel implementations**:
 
-1. **Class-based Selection System** (`/demo` route)
+1. **Svelte-native Implementation** (`/` route) - Primary approach
+   - Reactive stores for state management
+   - Mode-based editing (select/edit modes)
+   - Inspector panel for properties and history
+   - Floating UI for positioning
+   - Loro CRDT-based history with undo/redo
+   - Keyboard shortcuts (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z)
+
+2. **Class-based Selection System** (`/demo` route) - Experimental
    - Object-oriented `SelectionManager` interface
    - Event delegation for performance
    - Keyboard navigation (Tab, Arrows, Enter, Escape)
    - Copy/paste support
 
-2. **Svelte-native Implementation** (`/` route)
-   - Reactive stores for state management
-   - Mode-based editing (select/edit modes)
-   - Inspector panel for properties
-   - Floating UI for positioning
+### Core Features
+
+#### History Management (`/src/lib/core/history/`)
+- Loro CRDT for conflict-free replicated data types
+- Undo/redo with keyboard shortcuts
+- 500ms debouncing for edit grouping
+- Per-element change tracking
+- Version limit of 50 for memory management
+- Future: Real-time collaboration support
+
+#### Selection System
+- Click-based selection with visual overlay
+- Multi-selection with Shift/Cmd+Click
+- Keyboard navigation (Tab, Shift+Tab, Arrow keys)
+- Mode switching (Select → Edit with Enter/Double-click)
+- Escape key for deselection
 
 ### Data Attribute Conventions
 - `data-editable="text|image|icon|link"` - Defines editable element type
@@ -105,8 +129,16 @@ The project has **two parallel implementations**:
 - The project uses `pnpm` as package manager (not npm or yarn)
 - TypeScript is configured in strict mode - ensure all code is properly typed
 - Always run `pnpm lint` and `pnpm check` before committing changes
-- When developing, choose between the two implementation approaches based on your needs
+- When developing, focus on the Svelte-native implementation (`/` route)
 - The plugin system architecture is defined but not yet implemented
+
+## Dual-Mode System (Planned)
+
+The editor will support two distinct modes:
+- **Design Mode**: For developers/designers to define editable zones
+- **Content Mode**: For content editors with restricted, safe editing
+
+Currently, only the basic editing functionality is implemented. Mode separation is planned for future phases.
 
 ## Implementation Philosophy
 

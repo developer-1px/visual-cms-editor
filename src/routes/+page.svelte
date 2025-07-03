@@ -1,8 +1,13 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { Edit2, Copy, Trash2, Type, Image, Link, Mouse, PenTool, X, Undo2, Redo2 } from 'lucide-svelte';
+import { Edit2, Copy, Trash2, Type, Mouse, PenTool, Undo2, Redo2, FileText, Plus } from 'lucide-svelte';
 import { computePosition, flip, shift, offset } from '@floating-ui/dom';
 import { historyManager, type HistoryInfo } from '$lib/core/history';
+import Inspector from '$lib/components/Inspector.svelte';
+import TemplateSelector from '$lib/components/TemplateSelector.svelte';
+import TemplateRenderer from '$lib/components/TemplateRenderer.svelte';
+import type { Template } from '$lib/core/templates/templates';
+import { defaultTemplates } from '$lib/core/templates/templates';
 
 type Mode = 'select' | 'edit';
 
@@ -12,6 +17,10 @@ let mode: Mode = 'select';
 let inspectorOpen = true;
 let canUndo = false;
 let canRedo = false;
+let templateSelectorOpen = false;
+// 샘플 템플릿으로 시작
+let selectedTemplates: Template[] = [defaultTemplates[0], defaultTemplates[1]];
+let contentContainer: HTMLElement;
 
 // 선택된 요소들
 $: firstSelected = Array.from(selectedElements)[0];
@@ -246,6 +255,17 @@ function handleTextInput(element: HTMLElement) {
 	}
 }
 
+function handleSelectTemplate(template: Template) {
+	selectedTemplates = [...selectedTemplates, template];
+	// 템플릿이 추가되면 자동으로 스크롤
+	setTimeout(() => {
+		const newSection = contentContainer?.lastElementChild;
+		if (newSection) {
+			newSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		}
+	}, 100);
+}
+
 onMount(() => {
 	document.addEventListener('click', deselectAll);
 	document.addEventListener('keydown', handleKeydown);
@@ -260,156 +280,38 @@ onMount(() => {
 });
 </script>
 
-<style>
-/* Remove outline from contenteditable elements */
-[contenteditable="true"]:focus {
-	outline: none;
-}
-</style>
 
 <div class="min-h-screen flex items-center justify-center {inspectorOpen ? 'mr-80' : ''}">
-	<div class="w-full max-w-4xl px-4 py-12">
-		<!-- Hero Section -->
-		<section class="text-center mb-16">
-			<h1
-				data-editable="text"
-				data-max-length="50"
-				class="text-5xl font-bold text-gray-900 mb-4 cursor-pointer hover:bg-gray-50 rounded-lg px-4 py-2 transition-colors"
-				on:click={handleElementClick}
-				on:blur={stopEdit}
-				on:input={(e) => handleTextInput(e.currentTarget)}
+	<div bind:this={contentContainer} class="w-full max-w-4xl px-4 py-12">
+		<!-- 템플릿들 렌더링 -->
+		{#each selectedTemplates as template, index (template.id + index)}
+			<div class="mb-16 template-section">
+				<TemplateRenderer 
+					{template}
+					{handleElementClick}
+					{handleTextInput}
+					{stopEdit}
+				/>
+			</div>
+		{/each}
+		
+		<!-- 템플릿이 없을 때 안내 메시지 -->
+		{#if selectedTemplates.length === 0}
+		<div class="flex flex-col items-center justify-center min-h-[60vh] text-center">
+			<div class="mb-8">
+				<FileText size={64} class="text-gray-300 mx-auto mb-4" />
+				<h2 class="text-2xl font-semibold text-gray-700 mb-2">템플릿을 추가해주세요</h2>
+				<p class="text-gray-500">상단의 템플릿 버튼을 클릭하여 원하는 레이아웃을 선택하세요</p>
+			</div>
+			<button
+				on:click={() => templateSelectorOpen = true}
+				class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
 			>
-				Visual CMS Editor
-			</h1>
-			<p
-				data-editable="text"
-				data-max-length="200"
-				class="text-xl text-gray-600 max-w-2xl mx-auto cursor-pointer hover:bg-gray-50 rounded-lg px-4 py-2 transition-colors"
-				on:click={handleElementClick}
-				on:blur={stopEdit}
-				on:input={(e) => handleTextInput(e.currentTarget)}
-			>
-				디자인을 보호하면서 컨텐츠만 안전하게 편집할 수 있는 차세대 CMS 에디터
-			</p>
-		</section>
-
-		<!-- Features Grid -->
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-			<div class="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-				<div
-					data-editable="icon"
-					class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-xl mb-6 cursor-pointer hover:bg-blue-200 transition-colors"
-					on:click={handleElementClick}
-				>
-					<Type size={32} />
-				</div>
-				<h3
-					data-editable="text"
-					class="text-xl font-semibold text-gray-900 mb-3 cursor-pointer hover:bg-white rounded px-2 py-1 transition-colors"
-					on:click={handleElementClick}
-					on:blur={stopEdit}
-					on:input={(e) => handleTextInput(e.currentTarget)}
-				>
-					안전한 편집
-				</h3>
-				<p
-					data-editable="text"
-					class="text-gray-600 leading-relaxed cursor-pointer hover:bg-white rounded px-2 py-1 transition-colors"
-					on:click={handleElementClick}
-					on:blur={stopEdit}
-					on:input={(e) => handleTextInput(e.currentTarget)}
-				>
-					디자인 구조를 망칠 걱정 없이 텍스트와 이미지만 수정할 수 있습니다.
-				</p>
-			</div>
-
-			<div class="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-				<div
-					data-editable="icon"
-					class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-xl mb-6 cursor-pointer hover:bg-blue-200 transition-colors"
-					on:click={handleElementClick}
-				>
-					<Edit2 size={32} />
-				</div>
-				<h3
-					data-editable="text"
-					class="text-xl font-semibold text-gray-900 mb-3 cursor-pointer hover:bg-white rounded px-2 py-1 transition-colors"
-					on:click={handleElementClick}
-					on:blur={stopEdit}
-					on:input={(e) => handleTextInput(e.currentTarget)}
-				>
-					키보드 중심
-				</h3>
-				<p
-					data-editable="text"
-					class="text-gray-600 leading-relaxed cursor-pointer hover:bg-white rounded px-2 py-1 transition-colors"
-					on:click={handleElementClick}
-					on:blur={stopEdit}
-					on:input={(e) => handleTextInput(e.currentTarget)}
-				>
-					마우스 없이도 빠르게 편집할 수 있는 단축키를 제공합니다.
-				</p>
-			</div>
-
-			<div class="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-				<div
-					data-editable="icon"
-					class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-xl mb-6 cursor-pointer hover:bg-blue-200 transition-colors"
-					on:click={handleElementClick}
-				>
-					<Link size={32} />
-				</div>
-				<h3
-					data-editable="text"
-					class="text-xl font-semibold text-gray-900 mb-3 cursor-pointer hover:bg-white rounded px-2 py-1 transition-colors"
-					on:click={handleElementClick}
-					on:blur={stopEdit}
-					on:input={(e) => handleTextInput(e.currentTarget)}
-				>
-					실시간 협업
-				</h3>
-				<p
-					data-editable="text"
-					class="text-gray-600 leading-relaxed cursor-pointer hover:bg-white rounded px-2 py-1 transition-colors"
-					on:click={handleElementClick}
-					on:blur={stopEdit}
-					on:input={(e) => handleTextInput(e.currentTarget)}
-				>
-					여러 사람이 동시에 편집해도 충돌 없이 작업할 수 있습니다.
-				</p>
-			</div>
+				<Plus size={20} />
+				템플릿 추가하기
+			</button>
 		</div>
-
-		<!-- 사용 안내 -->
-		<div class="bg-white rounded-xl border border-gray-200 p-6">
-			<h3 class="text-lg font-semibold text-gray-900 mb-4">사용 방법</h3>
-			<div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-				<div class="flex items-center gap-2">
-					<kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">클릭</kbd>
-					<span class="text-gray-600">요소 선택</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">재클릭</kbd>
-					<span class="text-gray-600">편집 시작</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">Shift + 클릭</kbd>
-					<span class="text-gray-600">다중 선택</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">Enter</kbd>
-					<span class="text-gray-600">편집 시작</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">Esc</kbd>
-					<span class="text-gray-600">편집 종료</span>
-				</div>
-				<div class="flex items-center gap-2">
-					<kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">Tab</kbd>
-					<span class="text-gray-600">다음/이전</span>
-				</div>
-			</div>
-		</div>
+		{/if}
 	</div>
 </div>
 
@@ -449,154 +351,35 @@ onMount(() => {
 			</button>
 		</div>
 	{/if}
+	
+	<!-- Template button -->
+	<div class="h-6 w-px bg-gray-200"></div>
+	<button
+		on:click={() => templateSelectorOpen = true}
+		class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+		title="템플릿 추가"
+	>
+		<Plus size={16} />
+		템플릿
+	</button>
 </div>
 
 <!-- Inspector Panel -->
-{#if inspectorOpen}
-	<div class="fixed right-0 top-0 h-full w-80 bg-white shadow-xl border-l border-gray-200 overflow-y-auto">
-		<div class="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-			<h2 class="text-lg font-semibold text-gray-900">Inspector</h2>
-			<button
-				on:click={() => inspectorOpen = false}
-				class="p-1 hover:bg-gray-100 rounded transition-colors"
-			>
-				<X size={20} />
-			</button>
-		</div>
-
-		<div class="p-4">
-			{#if selectedElements.size === 0}
-				<p class="text-gray-500 text-sm">요소를 선택하세요</p>
-			{:else if multipleSelected}
-				<div class="space-y-4">
-					<div class="bg-blue-50 rounded-lg p-3">
-						<p class="text-sm font-medium text-blue-900">{selectedElements.size}개 요소 선택됨</p>
-					</div>
-					<div class="space-y-2">
-						{#each Array.from(selectedElements) as element, i}
-							<div class="bg-gray-50 rounded p-2">
-								<p class="text-xs font-medium text-gray-600">요소 {i + 1}</p>
-								<p class="text-sm text-gray-800 truncate">{element.textContent}</p>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{:else}
-				<div class="space-y-6">
-					<!-- Element Info -->
-					<div>
-						<h3 class="text-sm font-semibold text-gray-700 mb-2">요소 정보</h3>
-						<div class="space-y-2">
-							<div class="flex justify-between text-sm">
-								<span class="text-gray-600">타입</span>
-								<span class="font-medium">{selectedType}</span>
-							</div>
-							<div class="flex justify-between text-sm">
-								<span class="text-gray-600">태그</span>
-								<span class="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                                    {firstSelected?.tagName.toLowerCase()}
-                                </span>
-							</div>
-							{#if firstSelected?.dataset.maxLength}
-								<div class="flex justify-between text-sm">
-									<span class="text-gray-600">최대 길이</span>
-									<span class="font-medium">{firstSelected.dataset.maxLength}자</span>
-								</div>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Content Preview -->
-					{#if selectedType === 'text'}
-						<div>
-							<h3 class="text-sm font-semibold text-gray-700 mb-2">내용</h3>
-							<div class="bg-gray-50 rounded-lg p-3">
-								<p class="text-sm text-gray-800 whitespace-pre-wrap">
-									{firstSelected?.textContent || '(비어있음)'}
-								</p>
-								{#if firstSelected?.textContent}
-									<p class="text-xs text-gray-500 mt-2">
-										{firstSelected.textContent.length}자
-									</p>
-								{/if}
-							</div>
-						</div>
-					{/if}
-
-					<!-- History Info -->
-					{#if historyInfo && selectedType === 'text'}
-						<div>
-							<h3 class="text-sm font-semibold text-gray-700 mb-2">변경 기록</h3>
-							<div class="bg-gray-50 rounded-lg p-3 space-y-2">
-								<div class="flex justify-between text-sm">
-									<span class="text-gray-600">현재 버전</span>
-									<span class="font-mono text-xs bg-gray-200 px-2 py-0.5 rounded">
-										v{historyInfo.currentVersion}
-									</span>
-								</div>
-								<div class="flex justify-between text-sm">
-									<span class="text-gray-600">전체 변경 횟수</span>
-									<span class="font-medium">{historyInfo.totalVersions}회</span>
-								</div>
-								<div class="flex items-center gap-2 pt-2 border-t border-gray-200">
-									<button
-										on:click={() => { historyManager.undo(); updateHistoryState(); }}
-										disabled={!historyInfo.canUndo}
-										class="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-									>
-										<Undo2 size={12} />
-										<span>실행 취소</span>
-									</button>
-									<button
-										on:click={() => { historyManager.redo(); updateHistoryState(); }}
-										disabled={!historyInfo.canRedo}
-										class="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-white border border-gray-300 rounded text-xs hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-									>
-										<Redo2 size={12} />
-										<span>다시 실행</span>
-									</button>
-								</div>
-							</div>
-						</div>
-					{/if}
-
-					<!-- Actions -->
-					<div>
-						<h3 class="text-sm font-semibold text-gray-700 mb-2">작업</h3>
-						<div class="space-y-2">
-							{#if selectedType === 'text' && mode === 'select'}
-								<button
-									on:click={() => startEdit()}
-									class="w-full flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm"
-								>
-									<PenTool size={16} />
-									편집 시작
-								</button>
-							{/if}
-							<button class="w-full flex items-center gap-2 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm">
-								<Copy size={16} />
-								복사
-							</button>
-							<button class="w-full flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors text-sm">
-								<Trash2 size={16} />
-								내용 삭제
-							</button>
-						</div>
-					</div>
-				</div>
-			{/if}
-		</div>
-	</div>
-{:else}
-	<!-- Inspector Toggle Button -->
-	<button
-		on:click={() => inspectorOpen = true}
-		class="fixed right-4 top-4 bg-white rounded-lg shadow-lg p-3 hover:bg-gray-50 transition-colors"
-		title="Inspector 열기"
-	>
-		<Edit2 size={20} />
-	</button>
-{/if}
+<Inspector
+	{selectedElements}
+	bind:inspectorOpen
+	{historyInfo}
+	{mode}
+	onStartEdit={startEdit}
+	onHistoryAction={(action) => {
+		if (action === 'undo') {
+			historyManager.undo();
+		} else {
+			historyManager.redo();
+		}
+		updateHistoryState();
+	}}
+/>
 
 <!-- Selection Overlay -->
 {#if firstSelected}
@@ -638,3 +421,34 @@ onMount(() => {
 		</button>
 	</div>
 {/if}
+
+<!-- Template Selector Modal -->
+<TemplateSelector 
+	bind:isOpen={templateSelectorOpen}
+	onSelectTemplate={handleSelectTemplate}
+/>
+
+<style>
+  :global(*[contenteditable]) {
+    outline: none;
+  }
+  
+  /* 템플릿 섹션 스타일 */
+  .template-section {
+    position: relative;
+  }
+  
+  .template-section::before {
+    content: '';
+    position: absolute;
+    top: -2rem;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+  }
+  
+  .template-section:first-child::before {
+    display: none;
+  }
+</style>
