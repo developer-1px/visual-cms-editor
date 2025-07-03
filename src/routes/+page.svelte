@@ -1,9 +1,9 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { Edit2, Copy, Trash2, Type, Mouse, PenTool, Undo2, Redo2, FileText, Plus } from 'lucide-svelte';
+import { Edit2, Copy, Trash2, Type, Mouse, PenTool, Undo2, Redo2, Plus, Settings, Target, Grid3X3 } from 'lucide-svelte';
 import { computePosition, flip, shift, offset } from '@floating-ui/dom';
 import { historyManager, type HistoryInfo } from '$lib/core/history';
-import Inspector from '$lib/components/Inspector.svelte';
+import RightPanel from '$lib/components/RightPanel.svelte';
 import TemplateSelector from '$lib/components/TemplateSelector.svelte';
 import TemplateRenderer from '$lib/components/TemplateRenderer.svelte';
 import type { Template } from '$lib/core/templates/templates';
@@ -14,27 +14,39 @@ type Mode = 'select' | 'edit';
 let selectedElements: Set<HTMLElement> = new Set();
 let overlayElement: HTMLElement;
 let mode: Mode = 'select';
-let inspectorOpen = true;
+let rightPanelOpen = false;
 let canUndo = false;
 let canRedo = false;
 let templateSelectorOpen = false;
-// 샘플 템플릿으로 시작
-let selectedTemplates: Template[] = [defaultTemplates[0], defaultTemplates[1]];
+let selectedTemplates: Template[] = [
+	defaultTemplates[0], // Hero
+	defaultTemplates[2], // Features Grid
+	defaultTemplates[4], // Two Column Content
+	defaultTemplates[5], // Testimonial
+	defaultTemplates[6], // Pricing
+	defaultTemplates[3]  // CTA
+];
 let contentContainer: HTMLElement;
 
-// 선택된 요소들
 $: firstSelected = Array.from(selectedElements)[0];
 $: selectedType = firstSelected?.dataset.editable || '';
 $: multipleSelected = selectedElements.size > 1;
 $: isEditing = mode === 'edit';
 
-// History info for selected element
 let historyInfo: HistoryInfo | null = null;
 $: if (firstSelected && selectedType === 'text') {
 	const elementId = historyManager.getElementId(firstSelected);
 	historyInfo = elementId ? historyManager.getHistoryInfo(elementId) : null;
 } else {
 	historyInfo = null;
+}
+
+function handleHistoryAction(action: 'undo' | 'redo') {
+	if (action === 'undo') {
+		undo();
+	} else {
+		redo();
+	}
 }
 
 function handleElementClick(e: MouseEvent) {
@@ -45,24 +57,18 @@ function handleElementClick(e: MouseEvent) {
 		e.stopPropagation();
 
 		if (isEditing) {
-			// 편집 모드에서는 다른 텍스트 요소를 클릭해도 편집 계속
 			if (editable.dataset.editable === 'text' && editable !== firstSelected) {
-				// 다른 텍스트로 전환 - 편집 모드 유지
 				switchEditTarget(editable, e);
 			}
-			// 같은 텍스트를 클릭하면 그냥 편집 유지
 			return;
 		}
 
 		if (e.shiftKey || e.metaKey || e.ctrlKey) {
-			// 다중 선택
 			toggleSelection(editable);
 		} else {
-			// 이미 선택된 요소를 다시 클릭하면 바로 편집
 			if (selectedElements.has(editable) && selectedElements.size === 1) {
 				startEdit(e);
 			} else {
-				// 단일 선택
 				deselectAll();
 				selectElement(editable);
 			}
@@ -72,10 +78,22 @@ function handleElementClick(e: MouseEvent) {
 
 function selectElement(element: HTMLElement) {
 	selectedElements.add(element);
-	element.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
-	updateOverlayPosition();
+	if (isEditing) {
+		element.style.outline = '3px solid #f59e0b';
+		element.style.outlineOffset = '3px';
+	} else {
+		element.style.outline = '2px solid var(--color-accent)';
+		element.style.outlineOffset = '2px';
+	}
 	
-	// Register element for history tracking
+	// Update selected elements to trigger reactivity
+	selectedElements = selectedElements;
+	
+	// Delay overlay position update to ensure DOM is ready
+	requestAnimationFrame(() => {
+		updateOverlayPosition();
+	});
+	
 	if (element.dataset.editable === 'text') {
 		const elementId = historyManager.registerElement(element, element.textContent || '');
 		historyManager.onTextChange(elementId, (newText) => {
@@ -83,7 +101,6 @@ function selectElement(element: HTMLElement) {
 				element.textContent = newText;
 			}
 		});
-		// Update history state when selecting a text element
 		updateHistoryState();
 	}
 }
@@ -91,364 +108,455 @@ function selectElement(element: HTMLElement) {
 function toggleSelection(element: HTMLElement) {
 	if (selectedElements.has(element)) {
 		selectedElements.delete(element);
-		element.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
+		element.style.outline = '';
+		element.style.outlineOffset = '';
 	} else {
 		selectElement(element);
 	}
-	selectedElements = selectedElements; // 반응성 트리거
+	selectedElements = selectedElements;
 }
 
 function deselectAll() {
-	// 편집 모드에서는 빈 공간 클릭해도 선택 해제하지 않음
-	if (!isEditing) {
-		selectedElements.forEach(el => {
-			el.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2', 'ring-green-500');
-		});
-		selectedElements.clear();
-		selectedElements = selectedElements; // 반응성 트리거
+	selectedElements.forEach(element => {
+		element.style.outline = '';
+		element.style.outlineOffset = '';
+		// Remove contentEditable attribute completely
+		if (element.hasAttribute('contenteditable')) {
+			element.removeAttribute('contenteditable');
+			element.removeEventListener('input', handleTextInput);
+		}
+	});
+	selectedElements.clear();
+	selectedElements = selectedElements;
+	
+	if (overlayElement) {
+		overlayElement.style.display = 'none';
 	}
 }
 
-async function updateOverlayPosition() {
-	if (!firstSelected || !overlayElement) return;
-
-	const { x, y } = await computePosition(firstSelected, overlayElement, {
-		placement: 'top',
-		middleware: [
-			offset(8),
-			flip(),
-			shift({ padding: 5 })
-		]
-	});
-
-	overlayElement.style.left = `${x}px`;
-	overlayElement.style.top = `${y}px`;
+function switchMode(newMode: Mode) {
+	if (newMode === 'select' && isEditing) {
+		stopEdit();
+	}
+	mode = newMode;
 }
 
-function startEdit(event?: MouseEvent) {
-	if (!firstSelected || multipleSelected) return;
-
+function startEdit(e?: MouseEvent) {
+	if (!firstSelected || selectedType !== 'text') return;
+	
 	mode = 'edit';
-	firstSelected.classList.remove('ring-blue-500');
-	firstSelected.classList.add('ring-green-500');
-
-	if (firstSelected.dataset.editable === 'text') {
-		firstSelected.contentEditable = 'plaintext-only';
-		firstSelected.focus();
-
-		// 클릭 이벤트가 있으면 클릭 위치에 커서 유지
-		if (event) {
-			// 브라우저가 자동으로 클릭 위치에 커서를 놓도록 함
-			return;
+	
+	firstSelected.contentEditable = 'true';
+	firstSelected.focus();
+	
+	// Position caret at click location if available
+	if (e) {
+		const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+		if (range) {
+			const selection = window.getSelection();
+			selection?.removeAllRanges();
+			selection?.addRange(range);
 		}
-
-		// Enter 키로 편집 시작하면 끝에 커서 위치
+	} else {
+		// If no click event (e.g., Enter key), place caret at end
 		const range = document.createRange();
 		const selection = window.getSelection();
-
 		range.selectNodeContents(firstSelected);
-		range.collapse(false);
+		range.collapse(false); // false = collapse to end
 		selection?.removeAllRanges();
 		selection?.addRange(range);
+	}
+	
+	firstSelected.addEventListener('blur', stopEdit, { once: true });
+	firstSelected.addEventListener('input', handleTextInput);
+	
+	if (overlayElement) {
+		overlayElement.style.display = 'none';
 	}
 }
 
 function stopEdit() {
 	if (!firstSelected) return;
-
-	// Commit any pending history changes before stopping edit
-	const elementId = historyManager.getElementId(firstSelected);
-	if (elementId) {
-		historyManager.commitPendingChanges(elementId);
-	}
-
+	
+	// Remove contentEditable attribute completely instead of setting to 'false'
+	firstSelected.removeAttribute('contenteditable');
+	firstSelected.removeEventListener('input', handleTextInput);
+	
 	mode = 'select';
-	firstSelected.classList.remove('ring-green-500');
-	firstSelected.classList.add('ring-blue-500');
-	firstSelected.contentEditable = 'false';
+	
+	// Clear selection when blur occurs
+	deselectAll();
 }
 
-function switchEditTarget(newTarget: HTMLElement, event?: MouseEvent) {
-	// 현재 편집 중인 요소 정리
-	if (firstSelected) {
-		firstSelected.classList.remove('ring-green-500');
-		firstSelected.classList.add('ring-blue-500');
-		firstSelected.contentEditable = 'false';
+function handleTextInput(e: Event) {
+	const element = e.target as HTMLElement;
+	const elementId = historyManager.getElementId(element);
+	if (elementId && element.textContent) {
+		historyManager.updateText(elementId, element.textContent);
+		updateHistoryState();
 	}
+}
 
-	// 선택 상태 변경
-	selectedElements.clear();
-	selectedElements.add(newTarget);
-	selectedElements = selectedElements; // 반응성 트리거
+function switchEditTarget(newElement: HTMLElement, e: MouseEvent) {
+	if (firstSelected) {
+		stopEdit();
+	}
+	
+	deselectAll();
+	selectElement(newElement);
+	
+	setTimeout(() => startEdit(e), 10);
+}
 
-	// 새 요소 편집 시작
-	newTarget.classList.remove('ring-blue-500');
-	newTarget.classList.add('ring-green-500');
-	newTarget.contentEditable = 'plaintext-only';
+function copySelected() {
+	if (!firstSelected) return;
+	
+	const textToCopy = firstSelected.textContent || firstSelected.outerHTML;
+	navigator.clipboard.writeText(textToCopy);
+}
 
-	// 다음 틱에서 포커스와 오버레이 업데이트
-	setTimeout(() => {
-		newTarget.focus();
-		updateOverlayPosition();
-	}, 0);
+function deleteSelected() {
+	selectedElements.forEach(element => {
+		element.remove();
+	});
+	deselectAll();
+}
 
-	// mode는 edit 상태 유지
+function updateOverlayPosition() {
+	if (!firstSelected || !overlayElement || isEditing) return;
+
+	// Wait for overlay to be rendered
+	requestAnimationFrame(() => {
+		if (!overlayElement) return;
+		
+		// Get the element's position relative to the document
+		const rect = firstSelected.getBoundingClientRect();
+		const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+		const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+		
+		// Get overlay dimensions
+		const overlayHeight = overlayElement.offsetHeight || 32; // fallback height
+		
+		// Calculate absolute position
+		const absoluteX = rect.left + scrollLeft;
+		let absoluteY = rect.top + scrollTop - overlayHeight - 8; // 8px offset above
+		
+		// If overlay would be above viewport, position below element
+		if (absoluteY < scrollTop) {
+			absoluteY = rect.bottom + scrollTop + 8;
+		}
+		
+		overlayElement.style.left = `${absoluteX}px`;
+		overlayElement.style.top = `${absoluteY}px`;
+		overlayElement.style.display = 'block';
+	});
 }
 
 function handleKeydown(e: KeyboardEvent) {
-	// Undo/Redo shortcuts
-	if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-		e.preventDefault();
-		if (historyManager.canUndo()) {
-			historyManager.undo();
-			updateHistoryState();
+	if (e.key === 'Escape') {
+		if (isEditing) {
+			stopEdit();
+		} else {
+			deselectAll();
 		}
-	} else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' && e.shiftKey || e.key === 'y')) {
-		e.preventDefault();
-		if (historyManager.canRedo()) {
-			historyManager.redo();
-			updateHistoryState();
-		}
-	} else if (e.key === 'Escape') {
-		stopEdit();
-		deselectAll();
-	} else if (e.key === 'Enter' && firstSelected && !isEditing && !multipleSelected) {
-		e.preventDefault();
+		// Clean up any stray contenteditable attributes
+		cleanupContentEditable();
+	} else if (e.key === 'Enter' && !isEditing && firstSelected && selectedType === 'text') {
 		startEdit();
-	} else if (e.key === 'Tab' && firstSelected && !isEditing) {
+	} else if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
 		e.preventDefault();
-		navigateNext(!e.shiftKey);
-	}
-
-	if (isEditing && e.key === 'Enter') {
-		return;
+		undo();
+	} else if ((e.metaKey || e.ctrlKey) && (e.key === 'Z' || (e.shiftKey && e.key === 'z'))) {
+		e.preventDefault();
+		redo();
 	}
 }
 
-function navigateNext(forward: boolean = true) {
-	const allEditables = Array.from(document.querySelectorAll('[data-editable]')) as HTMLElement[];
-	const currentIndex = allEditables.findIndex(el => selectedElements.has(el));
+function cleanupContentEditable() {
+	// Remove all contenteditable attributes from the page
+	document.querySelectorAll('[contenteditable]').forEach(element => {
+		(element as HTMLElement).removeAttribute('contenteditable');
+	});
+}
 
-	let nextIndex = forward ? currentIndex + 1 : currentIndex - 1;
-	if (nextIndex >= allEditables.length) nextIndex = 0;
-	if (nextIndex < 0) nextIndex = allEditables.length - 1;
+function undo() {
+	if (canUndo) {
+		const changedElementId = historyManager.undo();
+		updateHistoryState();
+		
+		// Select the changed element
+		if (changedElementId) {
+			const element = historyManager.getElementById(changedElementId);
+			if (element) {
+				deselectAll();
+				selectElement(element);
+				// Flash effect to show what changed
+				element.animate([
+					{ backgroundColor: 'rgba(59, 130, 246, 0.3)' },
+					{ backgroundColor: 'transparent' }
+				], {
+					duration: 600,
+					easing: 'ease-out'
+				});
+			}
+		}
+	}
+}
 
-	deselectAll();
-	selectElement(allEditables[nextIndex]);
+function redo() {
+	if (canRedo) {
+		const changedElementId = historyManager.redo();
+		updateHistoryState();
+		
+		// Select the changed element
+		if (changedElementId) {
+			const element = historyManager.getElementById(changedElementId);
+			if (element) {
+				deselectAll();
+				selectElement(element);
+				// Flash effect to show what changed
+				element.animate([
+					{ backgroundColor: 'rgba(59, 130, 246, 0.3)' },
+					{ backgroundColor: 'transparent' }
+				], {
+					duration: 600,
+					easing: 'ease-out'
+				});
+			}
+		}
+	}
 }
 
 function updateHistoryState() {
 	canUndo = historyManager.canUndo();
 	canRedo = historyManager.canRedo();
-	
-	// Update history info for selected element
-	if (firstSelected && selectedType === 'text') {
-		const elementId = historyManager.getElementId(firstSelected);
-		historyInfo = elementId ? historyManager.getHistoryInfo(elementId) : null;
-	}
 }
 
-function handleTextInput(element: HTMLElement) {
-	if (element.dataset.editable === 'text') {
-		historyManager.updateText(element, element.textContent || '');
-		updateHistoryState();
-	}
+function removeTemplate(index: number) {
+	selectedTemplates = selectedTemplates.filter((_, i) => i !== index);
 }
 
 function handleSelectTemplate(template: Template) {
 	selectedTemplates = [...selectedTemplates, template];
-	// 템플릿이 추가되면 자동으로 스크롤
-	setTimeout(() => {
-		const newSection = contentContainer?.lastElementChild;
-		if (newSection) {
-			newSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	templateSelectorOpen = false;
+}
+
+function handleDoubleClick(e: MouseEvent) {
+	const target = e.target as HTMLElement;
+	const editable = target.closest('[data-editable]') as HTMLElement;
+	
+	if (editable && editable.dataset.editable === 'text') {
+		e.stopPropagation();
+		if (!selectedElements.has(editable)) {
+			deselectAll();
+			selectElement(editable);
 		}
-	}, 100);
+		startEdit(e);
+	}
 }
 
 onMount(() => {
 	document.addEventListener('click', deselectAll);
+	document.addEventListener('dblclick', handleDoubleClick);
 	document.addEventListener('keydown', handleKeydown);
 	
-	// Initialize history state
 	updateHistoryState();
 
 	return () => {
+		// Clean up any remaining editable elements
+		document.querySelectorAll('[contenteditable]').forEach(element => {
+			(element as HTMLElement).removeAttribute('contenteditable');
+		});
+		
 		document.removeEventListener('click', deselectAll);
+		document.removeEventListener('dblclick', handleDoubleClick);
 		document.removeEventListener('keydown', handleKeydown);
 	};
 });
 </script>
 
-
-<div class="min-h-screen flex items-center justify-center {inspectorOpen ? 'mr-80' : ''}">
-	<div bind:this={contentContainer} class="w-full max-w-4xl px-4 py-12">
-		<!-- 템플릿들 렌더링 -->
-		{#each selectedTemplates as template, index (template.id + index)}
-			<div class="mb-16 template-section">
-				<TemplateRenderer 
-					{template}
-					{handleElementClick}
-					{handleTextInput}
-					{stopEdit}
-				/>
-			</div>
-		{/each}
-		
-		<!-- 템플릿이 없을 때 안내 메시지 -->
-		{#if selectedTemplates.length === 0}
-		<div class="flex flex-col items-center justify-center min-h-[60vh] text-center">
-			<div class="mb-8">
-				<FileText size={64} class="text-gray-300 mx-auto mb-4" />
-				<h2 class="text-2xl font-semibold text-gray-700 mb-2">템플릿을 추가해주세요</h2>
-				<p class="text-gray-500">상단의 템플릿 버튼을 클릭하여 원하는 레이아웃을 선택하세요</p>
-			</div>
-			<button
-				on:click={() => templateSelectorOpen = true}
-				class="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-			>
-				<Plus size={20} />
-				템플릿 추가하기
-			</button>
-		</div>
-		{/if}
+<!-- Minimal Toolbar -->
+<div class="fixed top-2 left-2 z-20 flex items-center gap-1 bg-white shadow-md">
+	<!-- Mode Toggle -->
+	<div class="flex">
+		<button
+			class="icon-btn {mode === 'select' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+			onclick={() => switchMode('select')}
+			title="Select Mode"
+		>
+			<Mouse class="w-4 h-4" />
+		</button>
+		<button
+			class="icon-btn {mode === 'edit' ? (isEditing ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white') : 'text-stone-600'}"
+			onclick={() => switchMode('edit')}
+			title="{isEditing ? 'Editing Text' : 'Edit Mode'}"
+		>
+			<Edit2 class="w-4 h-4" />
+		</button>
+	</div>
+	
+	<div class="w-px h-8 bg-stone-100"></div>
+	
+	<!-- History -->
+	<div class="flex">
+		<button
+			class="icon-btn disabled:opacity-50 disabled:cursor-not-allowed"
+			onclick={undo}
+			disabled={!canUndo}
+			title="Undo"
+		>
+			<Undo2 class="w-4 h-4" />
+		</button>
+		<button
+			class="icon-btn disabled:opacity-50 disabled:cursor-not-allowed"
+			onclick={redo}
+			disabled={!canRedo}
+			title="Redo"
+		>
+			<Redo2 class="w-4 h-4" />
+		</button>
+	</div>
+	
+	<div class="w-px h-8 bg-stone-100"></div>
+	
+	<!-- Tools -->
+	<div class="flex">
+		<button
+			class="icon-btn"
+			onclick={() => templateSelectorOpen = true}
+			title="Add Template"
+		>
+			<Plus class="w-4 h-4" />
+		</button>
+		<button
+			class="icon-btn {rightPanelOpen ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+			onclick={() => rightPanelOpen = !rightPanelOpen}
+			title="Panel"
+		>
+			<Settings class="w-4 h-4" />
+		</button>
 	</div>
 </div>
 
-<!-- Mode Indicator -->
-<div class="fixed top-4 left-4 bg-white rounded-lg shadow-lg p-3 flex items-center gap-3">
-	<div class="flex items-center gap-2">
-		{#if mode === 'select'}
-			<Mouse size={20} class="text-blue-600" />
-			<span class="text-sm font-medium text-gray-700">선택 모드</span>
-		{:else}
-			<PenTool size={20} class="text-green-600" />
-			<span class="text-sm font-medium text-gray-700">편집 모드</span>
-		{/if}
-	</div>
-	<div class="h-6 w-px bg-gray-200"></div>
-	<kbd class="px-2 py-1 bg-gray-100 border border-gray-300 rounded text-xs font-mono">Esc</kbd>
-	
-	<!-- History controls -->
-	{#if canUndo || canRedo}
-		<div class="h-6 w-px bg-gray-200"></div>
-		<div class="flex items-center gap-1">
-			<button
-				on:click={() => { historyManager.undo(); updateHistoryState(); }}
-				disabled={!canUndo}
-				class="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-				title="실행 취소 (Cmd+Z)"
-			>
-				<Undo2 size={16} />
-			</button>
-			<button
-				on:click={() => { historyManager.redo(); updateHistoryState(); }}
-				disabled={!canRedo}
-				class="p-1.5 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-				title="다시 실행 (Cmd+Shift+Z)"
-			>
-				<Redo2 size={16} />
-			</button>
+<!-- Main Content -->
+<div class="flex h-screen">
+	<div class="flex-1 overflow-auto pt-16 {rightPanelOpen ? 'mr-80' : ''}">
+		<div bind:this={contentContainer} class="p-8">
+			<!-- Templates -->
+			<div class="space-y-8">
+				{#each selectedTemplates as template, index (template.id + index)}
+					<div class="animate-fade-in" style="animation-delay: {index * 0.1}s">
+						<TemplateRenderer
+							{template}
+							{handleElementClick}
+							{handleTextInput}
+							{stopEdit}
+						/>
+					</div>
+				{/each}
+				
+				<!-- Empty State -->
+				{#if selectedTemplates.length === 0}
+					<div class="flex flex-col items-center justify-center min-h-[60vh] text-center">
+						<div class="w-16 h-16 border-2 border-dashed border-stone-300 flex items-center justify-center mb-4">
+							<Grid3X3 class="w-8 h-8 text-stone-400" />
+						</div>
+						<button
+							onclick={() => templateSelectorOpen = true}
+							class="btn btn-primary"
+						>
+							<Plus class="w-4 h-4 mr-2" />
+							Add Template
+						</button>
+					</div>
+				{/if}
+			</div>
 		</div>
-	{/if}
-	
-	<!-- Template button -->
-	<div class="h-6 w-px bg-gray-200"></div>
-	<button
-		on:click={() => templateSelectorOpen = true}
-		class="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-		title="템플릿 추가"
-	>
-		<Plus size={16} />
-		템플릿
-	</button>
+	</div>
 </div>
 
-<!-- Inspector Panel -->
-<Inspector
-	{selectedElements}
-	bind:inspectorOpen
+<!-- Right Panel -->
+<RightPanel 
+	bind:isOpen={rightPanelOpen}
+	selectedElement={firstSelected}
 	{historyInfo}
-	{mode}
-	onStartEdit={startEdit}
-	onHistoryAction={(action) => {
-		if (action === 'undo') {
-			historyManager.undo();
-		} else {
-			historyManager.redo();
-		}
-		updateHistoryState();
-	}}
+	onHistoryAction={handleHistoryAction}
 />
 
 <!-- Selection Overlay -->
-{#if firstSelected}
+{#if selectedElements.size > 0 && !isEditing}
 	<div
 		bind:this={overlayElement}
-		class="fixed z-50 bg-gray-900 text-white rounded-lg shadow-xl p-1 flex items-center gap-1"
+		class="absolute bg-white shadow-lg flex z-30 animate-fade-in border border-blue-200"
+		style="display: none; border-radius: 6px;"
 	>
-		{#if multipleSelected}
-			<span class="px-3 py-1.5 text-xs font-medium">{selectedElements.size}개 선택</span>
-		{:else if selectedType === 'text'}
+		{#if selectedType === 'text'}
 			<button
-				on:click={() => startEdit()}
-				title="편집 (Enter)"
-				class="p-1.5 hover:bg-white/20 rounded transition-colors"
+				class="w-8 h-8 flex items-center justify-center bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+				onclick={startEdit}
+				title="Edit"
 			>
-				<Type size={14} />
-			</button>
-		{:else if selectedType === 'icon'}
-			<button
-				title="아이콘 변경"
-				class="p-1.5 hover:bg-white/20 rounded transition-colors"
-			>
-				<Edit2 size={14} />
+				<Type class="w-4 h-4" />
 			</button>
 		{/if}
-
 		<button
-			title="복사 (Cmd+C)"
-			class="p-1.5 hover:bg-white/20 rounded transition-colors"
+			class="w-8 h-8 flex items-center justify-center hover:bg-stone-100 transition-colors"
+			onclick={copySelected}
+			title="Copy"
 		>
-			<Copy size={14} />
+			<Copy class="w-4 h-4" />
 		</button>
-
 		<button
-			title="삭제"
-			class="p-1.5 hover:bg-white/20 rounded transition-colors"
+			class="w-8 h-8 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors"
+			onclick={deleteSelected}
+			title="Delete"
 		>
-			<Trash2 size={14} />
+			<Trash2 class="w-4 h-4" />
 		</button>
 	</div>
 {/if}
 
-<!-- Template Selector Modal -->
+<!-- Template Selector -->
 <TemplateSelector 
 	bind:isOpen={templateSelectorOpen}
 	onSelectTemplate={handleSelectTemplate}
 />
 
 <style>
-  :global(*[contenteditable]) {
-    outline: none;
-  }
-  
-  /* 템플릿 섹션 스타일 */
-  .template-section {
-    position: relative;
-  }
-  
-  .template-section::before {
-    content: '';
-    position: absolute;
-    top: -2rem;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(to right, transparent, #e5e7eb, transparent);
-  }
-  
-  .template-section:first-child::before {
-    display: none;
-  }
+	/* Minimal Editor Styles */
+	:global([data-editable]) {
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		position: relative;
+	}
+
+	:global([data-editable]:hover) {
+		outline: 1px solid var(--color-accent-light);
+		outline-offset: 1px;
+	}
+
+	:global(*[contenteditable="true"]) {
+		outline: 3px solid #f59e0b !important;
+		outline-offset: 3px;
+		background: rgba(245, 158, 11, 0.08);
+		animation: editPulse 2s ease-in-out infinite;
+		border-radius: 4px;
+		position: relative;
+	}
+	
+	:global(*[contenteditable="true"]::before) {
+		content: '';
+		position: absolute;
+		top: -20px;
+		left: 50%;
+		transform: translateX(-50%);
+		background: #f59e0b;
+		color: white;
+		padding: 2px 8px;
+		border-radius: 4px;
+		font-size: 11px;
+		font-weight: 600;
+		white-space: nowrap;
+		pointer-events: none;
+	}
 </style>

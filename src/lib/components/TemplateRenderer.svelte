@@ -55,11 +55,8 @@
 			// 클릭 이벤트
 			htmlElement.addEventListener('click', handleElementClick);
 			
-			// 텍스트 편집 관련 이벤트
-			if (htmlElement.dataset.editable === 'text') {
-				htmlElement.addEventListener('blur', stopEdit);
-				htmlElement.addEventListener('input', () => handleTextInput(htmlElement));
-			}
+			// 텍스트 편집 관련 이벤트는 +page.svelte에서 처리
+			// blur와 input 이벤트는 편집 모드 시작 시 동적으로 추가됨
 		});
 	}
 	
@@ -72,8 +69,6 @@
 			const htmlElement = element as HTMLElement;
 			
 			htmlElement.removeEventListener('click', handleElementClick);
-			htmlElement.removeEventListener('blur', stopEdit);
-			htmlElement.removeEventListener('input', () => handleTextInput(htmlElement));
 		});
 	}
 	

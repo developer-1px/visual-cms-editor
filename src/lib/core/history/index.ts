@@ -11,16 +11,17 @@ export interface HistoryInfo {
 export interface HistoryManager {
 	canUndo(): boolean;
 	canRedo(): boolean;
-	undo(): void;
-	redo(): void;
+	undo(): string | null; // Returns element ID that was changed
+	redo(): string | null; // Returns element ID that was changed
 	startTransaction(): void;
 	commitTransaction(): void;
 	clear(): void;
 	getHistoryInfo(elementId: string): HistoryInfo | null;
 	registerElement(element: HTMLElement, initialText?: string): string;
-	updateText(element: HTMLElement, newText: string): void;
+	updateText(elementId: string, newText: string): void;
 	onTextChange(elementId: string, callback: (text: string) => void): void;
 	getElementId(element: HTMLElement): string | undefined;
+	getElementById(elementId: string): HTMLElement | undefined;
 	commitPendingChanges(elementId?: string): void;
 }
 
@@ -29,14 +30,25 @@ interface TextHistory {
 	text: LoroText;
 	versions: string[];
 	currentIndex: number;
+	lastEditTimestamp: number;
+}
+
+interface EditAction {
+	elementId: string;
+	timestamp: number;
+	fromText: string;
+	toText: string;
 }
 
 export class LoroHistoryManager implements HistoryManager {
 	private textHistories: Map<string, TextHistory> = new Map();
 	private elementIdMap: WeakMap<HTMLElement, string> = new WeakMap();
+	private elementMap: Map<string, WeakRef<HTMLElement>> = new Map();
 	private listeners: Map<string, (text: string) => void> = new Map();
 	private pendingUpdates: Map<string, { text: string; timer: number }> = new Map();
 	private updateDelay = 500; // 500ms delay for grouping edits
+	private editHistory: EditAction[] = []; // Global edit history
+	private editHistoryIndex: number = -1; // Current position in edit history
 
 	constructor() {}
 
@@ -46,6 +58,7 @@ export class LoroHistoryManager implements HistoryManager {
 		if (!elementId) {
 			elementId = `text-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 			this.elementIdMap.set(element, elementId);
+			this.elementMap.set(elementId, new WeakRef(element));
 			
 			const doc = new LoroDoc();
 			const text = doc.getText('content');
@@ -60,7 +73,8 @@ export class LoroHistoryManager implements HistoryManager {
 				doc,
 				text,
 				versions: [initialText],
-				currentIndex: 0
+				currentIndex: 0,
+				lastEditTimestamp: Date.now()
 			};
 			
 			this.textHistories.set(elementId, history);
@@ -77,13 +91,7 @@ export class LoroHistoryManager implements HistoryManager {
 		return elementId;
 	}
 
-	updateText(element: HTMLElement, newText: string): void {
-		const elementId = this.elementIdMap.get(element);
-		if (!elementId) {
-			console.warn('Element not registered for history tracking');
-			return;
-		}
-
+	updateText(elementId: string, newText: string): void {
 		const history = this.textHistories.get(elementId);
 		if (!history) return;
 
@@ -103,15 +111,39 @@ export class LoroHistoryManager implements HistoryManager {
 		// Schedule history save after delay
 		const timer = window.setTimeout(() => {
 			// Save to history
+			const fromText = history.versions[history.currentIndex];
+			
 			// Remove any versions after current index (for redo functionality)
 			history.versions = history.versions.slice(0, history.currentIndex + 1);
 			history.versions.push(newText);
 			history.currentIndex = history.versions.length - 1;
 			
+			// Update last edit timestamp
+			history.lastEditTimestamp = Date.now();
+			
+			// Add to global edit history
+			const editAction: EditAction = {
+				elementId,
+				timestamp: history.lastEditTimestamp,
+				fromText,
+				toText: newText
+			};
+			
+			// Remove any actions after current index
+			this.editHistory = this.editHistory.slice(0, this.editHistoryIndex + 1);
+			this.editHistory.push(editAction);
+			this.editHistoryIndex = this.editHistory.length - 1;
+			
 			// Limit history size
 			if (history.versions.length > 50) {
 				history.versions.shift();
 				history.currentIndex--;
+			}
+			
+			// Limit global history size
+			if (this.editHistory.length > 100) {
+				this.editHistory.shift();
+				this.editHistoryIndex--;
 			}
 
 			// Clean up pending update
@@ -127,67 +159,74 @@ export class LoroHistoryManager implements HistoryManager {
 	}
 
 	canUndo(): boolean {
-		// Check if any text has undo history
-		for (const [_, history] of this.textHistories) {
-			if (history.currentIndex > 0) {
-				return true;
-			}
-		}
-		return false;
+		return this.editHistoryIndex >= 0;
 	}
 
 	canRedo(): boolean {
-		// Check if any text has redo history
-		for (const [_, history] of this.textHistories) {
-			if (history.currentIndex < history.versions.length - 1) {
-				return true;
-			}
-		}
-		return false;
+		return this.editHistoryIndex < this.editHistory.length - 1;
 	}
 
-	undo(): void {
-		// Find the most recently edited text with undo history
-		for (const [elementId, history] of this.textHistories) {
-			if (history.currentIndex > 0) {
-				history.currentIndex--;
-				const previousText = history.versions[history.currentIndex];
-				
-				// Update the text without adding to history
-				const currentText = history.text.toString();
-				history.text.delete(0, currentText.length);
-				history.text.insert(0, previousText);
-				
-				// Notify listeners
-				const listener = this.listeners.get(elementId);
-				if (listener) {
-					listener(previousText);
-				}
-				break;
-			}
+	undo(): string | null {
+		if (!this.canUndo()) return null;
+		
+		const action = this.editHistory[this.editHistoryIndex];
+		const history = this.textHistories.get(action.elementId);
+		
+		if (!history) return null;
+		
+		// Apply the undo
+		const currentText = history.text.toString();
+		history.text.delete(0, currentText.length);
+		history.text.insert(0, action.fromText);
+		
+		// Update the element's history index
+		history.currentIndex = history.versions.indexOf(action.fromText);
+		if (history.currentIndex === -1) {
+			// Fallback if exact text not found
+			history.currentIndex = Math.max(0, history.currentIndex - 1);
 		}
+		
+		// Move the global history index back
+		this.editHistoryIndex--;
+		
+		// Notify listeners
+		const listener = this.listeners.get(action.elementId);
+		if (listener) {
+			listener(action.fromText);
+		}
+		
+		return action.elementId;
 	}
 
-	redo(): void {
-		// Find the most recently edited text with redo history
-		for (const [elementId, history] of this.textHistories) {
-			if (history.currentIndex < history.versions.length - 1) {
-				history.currentIndex++;
-				const nextText = history.versions[history.currentIndex];
-				
-				// Update the text without adding to history
-				const currentText = history.text.toString();
-				history.text.delete(0, currentText.length);
-				history.text.insert(0, nextText);
-				
-				// Notify listeners
-				const listener = this.listeners.get(elementId);
-				if (listener) {
-					listener(nextText);
-				}
-				break;
-			}
+	redo(): string | null {
+		if (!this.canRedo()) return null;
+		
+		// Move to the next action
+		this.editHistoryIndex++;
+		const action = this.editHistory[this.editHistoryIndex];
+		const history = this.textHistories.get(action.elementId);
+		
+		if (!history) return null;
+		
+		// Apply the redo
+		const currentText = history.text.toString();
+		history.text.delete(0, currentText.length);
+		history.text.insert(0, action.toText);
+		
+		// Update the element's history index
+		history.currentIndex = history.versions.indexOf(action.toText);
+		if (history.currentIndex === -1) {
+			// Fallback if exact text not found
+			history.currentIndex = Math.min(history.versions.length - 1, history.currentIndex + 1);
 		}
+		
+		// Notify listeners
+		const listener = this.listeners.get(action.elementId);
+		if (listener) {
+			listener(action.toText);
+		}
+		
+		return action.elementId;
 	}
 
 	startTransaction(): void {
@@ -208,6 +247,9 @@ export class LoroHistoryManager implements HistoryManager {
 		this.textHistories.clear();
 		this.listeners.clear();
 		this.elementIdMap = new WeakMap();
+		this.elementMap.clear();
+		this.editHistory = [];
+		this.editHistoryIndex = -1;
 	}
 
 	// Force save any pending changes immediately
@@ -219,14 +261,34 @@ export class LoroHistoryManager implements HistoryManager {
 				this.pendingUpdates.delete(elementId);
 				
 				const history = this.textHistories.get(elementId);
-				if (history) {
+				if (history && history.currentIndex >= 0) {
+					const fromText = history.versions[history.currentIndex];
+					
 					history.versions = history.versions.slice(0, history.currentIndex + 1);
 					history.versions.push(pending.text);
 					history.currentIndex = history.versions.length - 1;
+					history.lastEditTimestamp = Date.now();
+					
+					// Add to global edit history
+					const editAction: EditAction = {
+						elementId,
+						timestamp: history.lastEditTimestamp,
+						fromText,
+						toText: pending.text
+					};
+					
+					this.editHistory = this.editHistory.slice(0, this.editHistoryIndex + 1);
+					this.editHistory.push(editAction);
+					this.editHistoryIndex = this.editHistory.length - 1;
 					
 					if (history.versions.length > 50) {
 						history.versions.shift();
 						history.currentIndex--;
+					}
+					
+					if (this.editHistory.length > 100) {
+						this.editHistory.shift();
+						this.editHistoryIndex--;
 					}
 				}
 			}
@@ -236,14 +298,34 @@ export class LoroHistoryManager implements HistoryManager {
 				clearTimeout(pending.timer);
 				
 				const history = this.textHistories.get(id);
-				if (history) {
+				if (history && history.currentIndex >= 0) {
+					const fromText = history.versions[history.currentIndex];
+					
 					history.versions = history.versions.slice(0, history.currentIndex + 1);
 					history.versions.push(pending.text);
 					history.currentIndex = history.versions.length - 1;
+					history.lastEditTimestamp = Date.now();
+					
+					// Add to global edit history
+					const editAction: EditAction = {
+						elementId: id,
+						timestamp: history.lastEditTimestamp,
+						fromText,
+						toText: pending.text
+					};
+					
+					this.editHistory = this.editHistory.slice(0, this.editHistoryIndex + 1);
+					this.editHistory.push(editAction);
+					this.editHistoryIndex = this.editHistory.length - 1;
 					
 					if (history.versions.length > 50) {
 						history.versions.shift();
 						history.currentIndex--;
+					}
+					
+					if (this.editHistory.length > 100) {
+						this.editHistory.shift();
+						this.editHistoryIndex--;
 					}
 				}
 			}
@@ -253,6 +335,11 @@ export class LoroHistoryManager implements HistoryManager {
 
 	getElementId(element: HTMLElement): string | undefined {
 		return this.elementIdMap.get(element);
+	}
+
+	getElementById(elementId: string): HTMLElement | undefined {
+		const ref = this.elementMap.get(elementId);
+		return ref?.deref();
 	}
 
 	getHistoryInfo(elementId: string): HistoryInfo | null {

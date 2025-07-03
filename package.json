@@ -14,7 +14,9 @@
 		"lint": "prettier --check . && eslint .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"deploy": "pnpm build && gh-pages -d build",
+		"deploy:check": "pnpm check && pnpm lint && pnpm build"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",

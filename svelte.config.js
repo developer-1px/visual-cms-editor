@@ -11,7 +11,10 @@ const config = {
 			// CSR only 설정
 			fallback: 'index.html',
 			strict: false
-		})
+		}),
+		paths: {
+			base: process.env.BASE_PATH || ''
+		}
 	}
 };
 
