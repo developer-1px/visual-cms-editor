@@ -223,32 +223,31 @@ function deleteSelected() {
 }
 
 function updateOverlayPosition() {
-	if (!firstSelected || !overlayElement || isEditing) return;
+	if (!firstSelected || !overlayElement || isEditing || !contentContainer) return;
 
 	// Wait for overlay to be rendered
 	requestAnimationFrame(() => {
-		if (!overlayElement) return;
+		if (!overlayElement || !contentContainer) return;
 		
-		// Get the element's position relative to the document
-		const rect = firstSelected.getBoundingClientRect();
-		const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-		const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+		// Get positions relative to the content container
+		const containerRect = contentContainer.getBoundingClientRect();
+		const elementRect = firstSelected.getBoundingClientRect();
 		
 		// Get overlay dimensions
 		const overlayHeight = overlayElement.offsetHeight || 32; // fallback height
 		
-		// Calculate absolute position
-		const absoluteX = rect.left + scrollLeft;
-		let absoluteY = rect.top + scrollTop - overlayHeight - 8; // 8px offset above
+		// Calculate position relative to content container
+		const relativeX = elementRect.left - containerRect.left;
+		let relativeY = elementRect.top - containerRect.top - overlayHeight - 8; // 8px offset above
 		
-		// If overlay would be above viewport, position below element
-		if (absoluteY < scrollTop) {
-			absoluteY = rect.bottom + scrollTop + 8;
+		// If overlay would be above container, position below element
+		if (relativeY < 0) {
+			relativeY = elementRect.bottom - containerRect.top + 8;
 		}
 		
-		overlayElement.style.left = `${absoluteX}px`;
-		overlayElement.style.top = `${absoluteY}px`;
-		overlayElement.style.display = 'block';
+		overlayElement.style.left = `${relativeX}px`;
+		overlayElement.style.top = `${relativeY}px`;
+		overlayElement.style.display = 'flex';
 	});
 }
 
@@ -441,7 +440,7 @@ onMount(() => {
 <!-- Main Content -->
 <div class="flex h-screen">
 	<div class="flex-1 overflow-auto pt-16 {rightPanelOpen ? 'mr-80' : ''}">
-		<div bind:this={contentContainer} class="p-8">
+		<div bind:this={contentContainer} class="p-8 relative">
 			<!-- Templates -->
 			<div class="space-y-8">
 				{#each selectedTemplates as template, index (template.id + index)}
@@ -471,6 +470,40 @@ onMount(() => {
 					</div>
 				{/if}
 			</div>
+			
+			<!-- Selection Overlay - Inside content container -->
+			{#if selectedElements.size > 0 && !isEditing}
+				<div
+					bind:this={overlayElement}
+					class="absolute bg-stone-900 shadow-xl flex items-center gap-1 px-1 py-1 z-30 animate-fade-in floating-ui"
+					style="display: none; border-radius: 8px;"
+				>
+					{#if selectedType === 'text'}
+						<button
+							class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all"
+							onclick={startEdit}
+							title="Edit"
+						>
+							<Type class="w-4 h-4" />
+						</button>
+						<div class="w-px h-5 bg-white/20"></div>
+					{/if}
+					<button
+						class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all"
+						onclick={copySelected}
+						title="Copy"
+					>
+						<Copy class="w-4 h-4" />
+					</button>
+					<button
+						class="w-8 h-8 flex items-center justify-center text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded transition-all"
+						onclick={deleteSelected}
+						title="Delete"
+					>
+						<Trash2 class="w-4 h-4" />
+					</button>
+				</div>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -482,39 +515,6 @@ onMount(() => {
 	{historyInfo}
 	onHistoryAction={handleHistoryAction}
 />
-
-<!-- Selection Overlay -->
-{#if selectedElements.size > 0 && !isEditing}
-	<div
-		bind:this={overlayElement}
-		class="absolute bg-white shadow-lg flex z-30 animate-fade-in border border-blue-200"
-		style="display: none; border-radius: 6px;"
-	>
-		{#if selectedType === 'text'}
-			<button
-				class="w-8 h-8 flex items-center justify-center bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-				onclick={startEdit}
-				title="Edit"
-			>
-				<Type class="w-4 h-4" />
-			</button>
-		{/if}
-		<button
-			class="w-8 h-8 flex items-center justify-center hover:bg-stone-100 transition-colors"
-			onclick={copySelected}
-			title="Copy"
-		>
-			<Copy class="w-4 h-4" />
-		</button>
-		<button
-			class="w-8 h-8 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors"
-			onclick={deleteSelected}
-			title="Delete"
-		>
-			<Trash2 class="w-4 h-4" />
-		</button>
-	</div>
-{/if}
 
 <!-- Template Selector -->
 <TemplateSelector 
@@ -558,5 +558,18 @@ onMount(() => {
 		font-weight: 600;
 		white-space: nowrap;
 		pointer-events: none;
+	}
+	
+	/* Floating UI Arrow */
+	.floating-ui::after {
+		content: '';
+		position: absolute;
+		bottom: -6px;
+		left: 20px;
+		width: 0;
+		height: 0;
+		border-left: 6px solid transparent;
+		border-right: 6px solid transparent;
+		border-top: 6px solid #1c1917; /* stone-900 */
 	}
 </style>
