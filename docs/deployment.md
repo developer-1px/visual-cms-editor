@@ -39,6 +39,7 @@ pnpm preview
 ### 커스텀 도메인
 
 커스텀 도메인을 사용하려면:
+
 1. 저장소 루트에 `static/CNAME` 파일 생성
 2. 파일에 도메인 이름 입력 (예: `editor.example.com`)
 3. DNS 설정에서 CNAME 레코드 추가
@@ -46,6 +47,7 @@ pnpm preview
 ### 환경 변수
 
 배포 시 필요한 환경 변수는 GitHub Secrets에 추가할 수 있습니다:
+
 - Settings > Secrets and variables > Actions
 - 필요한 시크릿 추가 후 워크플로우에서 사용
 

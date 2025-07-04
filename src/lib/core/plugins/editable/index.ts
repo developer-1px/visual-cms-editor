@@ -17,195 +17,197 @@ import { imagePlugin } from './plugins/image';
 import { iconPlugin } from './plugins/icon';
 
 export class EditablePluginManager {
-  private initialized = false;
+	private initialized = false;
 
-  constructor() {
-    this.registerBuiltInPlugins();
-  }
+	constructor() {
+		this.registerBuiltInPlugins();
+	}
 
-  private registerBuiltInPlugins(): void {
-    if (this.initialized) return;
-    
-    editablePluginRegistry.register(textPlugin);
-    editablePluginRegistry.register(imagePlugin);
-    editablePluginRegistry.register(iconPlugin);
-    
-    this.initialized = true;
-    console.log('[EditablePluginManager] Built-in plugins registered:', 
-      editablePluginRegistry.listRegistered());
-  }
+	private registerBuiltInPlugins(): void {
+		if (this.initialized) return;
 
-  // Initialize element with appropriate plugin
-  initElement(element: HTMLElement): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+		editablePluginRegistry.register(textPlugin);
+		editablePluginRegistry.register(imagePlugin);
+		editablePluginRegistry.register(iconPlugin);
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.init) {
-      plugin.init(element);
-    }
-  }
+		this.initialized = true;
+		console.log(
+			'[EditablePluginManager] Built-in plugins registered:',
+			editablePluginRegistry.listRegistered()
+		);
+	}
 
-  // Destroy element plugin
-  destroyElement(element: HTMLElement): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Initialize element with appropriate plugin
+	initElement(element: HTMLElement): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.destroy) {
-      plugin.destroy(element);
-    }
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.init) {
+			plugin.init(element);
+		}
+	}
 
-  // Handle element click
-  handleClick(element: HTMLElement, event: MouseEvent): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Destroy element plugin
+	destroyElement(element: HTMLElement): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.onClick) {
-      plugin.onClick(element, event);
-    }
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.destroy) {
+			plugin.destroy(element);
+		}
+	}
 
-  // Handle element double click
-  handleDoubleClick(element: HTMLElement, event: MouseEvent): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Handle element click
+	handleClick(element: HTMLElement, event: MouseEvent): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.onDoubleClick) {
-      plugin.onDoubleClick(element, event);
-    }
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.onClick) {
+			plugin.onClick(element, event);
+		}
+	}
 
-  // Handle keydown
-  handleKeydown(element: HTMLElement, event: KeyboardEvent): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Handle element double click
+	handleDoubleClick(element: HTMLElement, event: MouseEvent): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.onKeydown) {
-      plugin.onKeydown(element, event);
-    }
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.onDoubleClick) {
+			plugin.onDoubleClick(element, event);
+		}
+	}
 
-  // Get element value
-  getValue(element: HTMLElement): any {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return null;
+	// Handle keydown
+	handleKeydown(element: HTMLElement, event: KeyboardEvent): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.getValue) {
-      return plugin.getValue(element);
-    }
-    return null;
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.onKeydown) {
+			plugin.onKeydown(element, event);
+		}
+	}
 
-  // Set element value
-  setValue(element: HTMLElement, value: any): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Get element value
+	getValue(element: HTMLElement): any {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return null;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.setValue) {
-      plugin.setValue(element, value);
-    }
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.getValue) {
+			return plugin.getValue(element);
+		}
+		return null;
+	}
 
-  // Check if element is empty
-  isEmpty(element: HTMLElement): boolean {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return true;
+	// Set element value
+	setValue(element: HTMLElement, value: any): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.isEmpty) {
-      return plugin.isEmpty(element);
-    }
-    return true;
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.setValue) {
+			plugin.setValue(element, value);
+		}
+	}
 
-  // Clear element
-  clear(element: HTMLElement): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Check if element is empty
+	isEmpty(element: HTMLElement): boolean {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return true;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.clear) {
-      plugin.clear(element);
-    }
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.isEmpty) {
+			return plugin.isEmpty(element);
+		}
+		return true;
+	}
 
-  // Get available actions for element
-  getActions(element: HTMLElement): any[] {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return [];
+	// Clear element
+	clear(element: HTMLElement): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.getActions) {
-      return plugin.getActions(element);
-    }
-    return [];
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.clear) {
+			plugin.clear(element);
+		}
+	}
 
-  // Apply selection styles
-  applyStyles(element: HTMLElement, selected: boolean): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Get available actions for element
+	getActions(element: HTMLElement): any[] {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return [];
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.applyStyles) {
-      plugin.applyStyles(element, selected);
-    }
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.getActions) {
+			return plugin.getActions(element);
+		}
+		return [];
+	}
 
-  // Remove selection styles
-  removeStyles(element: HTMLElement): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Apply selection styles
+	applyStyles(element: HTMLElement, selected: boolean): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.removeStyles) {
-      plugin.removeStyles(element);
-    }
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.applyStyles) {
+			plugin.applyStyles(element, selected);
+		}
+	}
 
-  // Validate element value
-  validate(element: HTMLElement, value: any): { valid: boolean; message?: string } {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return { valid: true };
+	// Remove selection styles
+	removeStyles(element: HTMLElement): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.validate) {
-      return plugin.validate(element, value);
-    }
-    return { valid: true };
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.removeStyles) {
+			plugin.removeStyles(element);
+		}
+	}
 
-  // Get registered plugin types
-  getRegisteredTypes(): string[] {
-    return editablePluginRegistry.listRegistered();
-  }
+	// Validate element value
+	validate(element: HTMLElement, value: any): { valid: boolean; message?: string } {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return { valid: true };
 
-  // Check if type is supported
-  isTypeSupported(type: string): boolean {
-    return editablePluginRegistry.hasType(type);
-  }
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.validate) {
+			return plugin.validate(element, value);
+		}
+		return { valid: true };
+	}
 
-  // Handle action execution
-  handleAction(element: HTMLElement, actionId: string): void {
-    const editableType = element.getAttribute('data-editable');
-    if (!editableType) return;
+	// Get registered plugin types
+	getRegisteredTypes(): string[] {
+		return editablePluginRegistry.listRegistered();
+	}
 
-    const plugin = editablePluginRegistry.get(editableType);
-    if (plugin && plugin.getActions) {
-      const actions = plugin.getActions(element);
-      const action = actions.find(a => a.id === actionId);
-      if (action && action.handler) {
-        action.handler();
-      }
-    }
-  }
+	// Check if type is supported
+	isTypeSupported(type: string): boolean {
+		return editablePluginRegistry.hasType(type);
+	}
+
+	// Handle action execution
+	handleAction(element: HTMLElement, actionId: string): void {
+		const editableType = element.getAttribute('data-editable');
+		if (!editableType) return;
+
+		const plugin = editablePluginRegistry.get(editableType);
+		if (plugin && plugin.getActions) {
+			const actions = plugin.getActions(element);
+			const action = actions.find((a) => a.id === actionId);
+			if (action && action.handler) {
+				action.handler();
+			}
+		}
+	}
 }
 
 // Singleton instance

@@ -6,8 +6,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-	--font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-	
+	--font-sans:
+		'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
 	/* Monochrome Stone Palette */
 	--color-stone-50: #fafaf9;
 	--color-stone-100: #f5f5f4;
@@ -19,24 +20,24 @@
 	--color-stone-700: #44403c;
 	--color-stone-800: #292524;
 	--color-stone-900: #1c1917;
-	
+
 	/* Accent Color - Beautiful Blue */
 	--color-accent: #3b82f6;
 	--color-accent-light: #60a5fa;
 	--color-accent-dark: #1d4ed8;
-	
+
 	/* Functional Colors */
 	--color-primary: var(--color-stone-900);
 	--color-secondary: var(--color-stone-600);
 	--color-muted: var(--color-stone-400);
 	--color-border: var(--color-stone-200);
 	--color-surface: var(--color-stone-50);
-	
+
 	/* Shadows */
 	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 	--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-	
+
 	/* Transitions */
 	--transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
 	--transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -65,8 +66,8 @@ body {
 /* Minimal Button Styles */
 .btn {
 	@apply inline-flex items-center justify-center px-3 py-2 text-sm font-medium transition-all duration-200;
-	@apply bg-white hover:bg-stone-50 text-stone-700;
-	@apply focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2;
+	@apply bg-white text-stone-700 hover:bg-stone-50;
+	@apply focus:ring-2 focus:ring-stone-500 focus:ring-offset-2 focus:outline-none;
 }
 
 .btn-primary {
@@ -83,35 +84,52 @@ body {
 
 /* Icon Button */
 .icon-btn {
-	@apply w-7 h-7 flex items-center justify-center hover:bg-stone-200 rounded;
+	@apply flex h-7 w-7 items-center justify-center rounded hover:bg-stone-200;
 	@apply transition-colors duration-150 focus:outline-none;
 }
 
 /* Card Styles */
 .card {
-	@apply bg-white shadow-sm hover:shadow-md transition-shadow duration-200;
+	@apply bg-white shadow-sm transition-shadow duration-200 hover:shadow-md;
 }
 
 /* Input Styles */
 .input {
 	@apply bg-white px-3 py-2 text-sm;
-	@apply focus:outline-none focus:ring-2 focus:ring-stone-500;
+	@apply focus:ring-2 focus:ring-stone-500 focus:outline-none;
 }
 
 /* Animations */
 @keyframes fadeIn {
-	from { opacity: 0; transform: translateY(8px); }
-	to { opacity: 1; transform: translateY(0); }
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 @keyframes slideIn {
-	from { opacity: 0; transform: translateX(16px); }
-	to { opacity: 1; transform: translateX(0); }
+	from {
+		opacity: 0;
+		transform: translateX(16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
 }
 
 @keyframes editPulse {
-	0%, 100% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.1); }
-	50% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.2); }
+	0%,
+	100% {
+		box-shadow: 0 0 0 6px rgba(245, 158, 11, 0.1);
+	}
+	50% {
+		box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.2);
+	}
 }
 
 .animate-fade-in {

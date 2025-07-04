@@ -235,7 +235,7 @@ export const defaultTemplates: Template[] = [
 				selector: '[data-editable="image"]',
 				type: 'image',
 				defaultValue: '',
-				constraints: { 
+				constraints: {
 					allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
 					maxSize: 5242880 // 5MB
 				}
@@ -344,13 +344,131 @@ export const defaultTemplates: Template[] = [
 				constraints: { maxLength: 30 }
 			}
 		]
+	},
+	{
+		id: 'content-tabbed-showcase',
+		name: 'Tabbed Showcase',
+		description: 'Content showcase with tabs',
+		category: 'content',
+		html: `
+			<section class="section-margin py-24 border-b border-stone-200">
+				<div class="container max-w-6xl mx-auto px-8">
+					<h3 class="showcase-title text-[22px] lg:text-[28px] font-bold leading-[150%] mb-2.5 lg:mb-5 lg:max-w-[800px] text-black m-0" data-editable="text">
+						새로운 사용자 경험과 비즈니스 기회를 만들어 보세요.
+					</h3>
+					<div class="swiper swiper-initialized swiper-horizontal swiper-backface-hidden">
+						<div class="swiper-wrapper flex" style="transform: translate3d(0px, 0px, 0px);">
+							<div class="swiper-slide w-auto tab-active swiper-slide-active" data-repeatable="tab">
+								<div class="tab-name group relative line-clamp-1 h-[50px] max-w-[250px] px-4 leading-[50px] cursor-pointer hover:bg-stone-50 transition-colors" data-editable="text">
+									HyperCLOVA X
+								</div>
+							</div>
+							<div class="swiper-slide w-auto" data-repeatable="tab">
+								<div class="tab-name group relative line-clamp-1 h-[50px] max-w-[250px] px-4 leading-[50px] cursor-pointer hover:bg-stone-50 transition-colors" data-editable="text">
+									CLOVA Studio
+								</div>
+							</div>
+							<div class="swiper-slide w-auto" data-repeatable="tab">
+								<div class="tab-name group relative line-clamp-1 h-[50px] max-w-[250px] px-4 leading-[50px] cursor-pointer hover:bg-stone-50 transition-colors" data-editable="text">
+									CLOVA X
+								</div>
+							</div>
+							<span class="scroll-tabs-ink-bar absolute bottom-0 h-[2px] bg-black transition-all duration-300" style="width: 143px; left: 0px;"></span>
+						</div>
+					</div>
+					<div class="mt-8">
+						<div class="tab-content">
+							<div class="md:flex">
+								<div class="lg:w-[462px] md:w-[364px] xl:w-[590px] md:h-[205px] lg:h-[260px] xl:h-[332px] rounded-[20px] h-[200px] shrink-0 overflow-hidden border border-solid border-[rgba(34,34,34,0.1)] relative group cursor-pointer" data-editable="image">
+									<div class="relative h-full w-full">
+										<div class="flex h-full w-full items-center justify-center" style="background-color:rgba(0, 0, 0, 0)">
+											<img class="tab-image w-full h-full object-cover absolute inset-0" src="" alt="Showcase image" style="display: none;" />
+											<div class="image-placeholder flex items-center justify-center h-full text-stone-400 group-hover:text-stone-600 transition-colors absolute inset-0 bg-stone-50">
+												<svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+												</svg>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="md:mt-0 md:flex-1 md:ml-7.5 lg:ml-[50px] mt-5 flex shrink-0 flex-col justify-between">
+									<div class="flex-1">
+										<h4 class="tab-title lg:text-[20px] m-0 text-[18px] font-bold leading-[150%] line-clamp-3 text-black" data-editable="text">
+											HyperCLOVA X
+										</h4>
+										<p class="tab-description m-0 text-[18px] font-normal leading-[150%] text-gray-700 mt-[10px] line-clamp-5" data-editable="text">
+											HyperCLOVA X는 한국의 문화와 맥락을 가장 잘 이해하는 생성형 AI입니다. AI 생태계와의 연결성 및 확장성을 기반으로 새로운 사용자 경험과 비즈니스 기회를 만들어 보세요.
+										</p>
+									</div>
+									<div class="md:block mt-5 hidden">
+										<a class="tab-link hover:text-blue-600 flex items-center p-0 text-base font-semibold text-black transition" href="#" data-editable="link">
+											<span class="tab-link-text" data-editable="text">자세히 보기</span>
+											<svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+											</svg>
+										</a>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+		`,
+		editableElements: [
+			{
+				selector: '.showcase-title',
+				type: 'text',
+				defaultValue: '새로운 사용자 경험과 비즈니스 기회를 만들어 보세요.',
+				constraints: { maxLength: 100 }
+			},
+			{
+				selector: '.tab-name',
+				type: 'text',
+				defaultValue: 'Tab Name',
+				constraints: { maxLength: 30 }
+			},
+			{
+				selector: '.tab-title',
+				type: 'text',
+				defaultValue: 'Content Title',
+				constraints: { maxLength: 50 }
+			},
+			{
+				selector: '.tab-description',
+				type: 'text',
+				defaultValue: 'Content description',
+				constraints: { maxLength: 300 }
+			},
+			{
+				selector: '.tab-link-text',
+				type: 'text',
+				defaultValue: '자세히 보기',
+				constraints: { maxLength: 30 }
+			},
+			{
+				selector: '[data-editable="image"]',
+				type: 'image',
+				defaultValue: '',
+				constraints: {
+					allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+					maxSize: 5242880 // 5MB
+				}
+			},
+			{
+				selector: '[data-editable="link"]',
+				type: 'link',
+				defaultValue: '#',
+				constraints: {}
+			}
+		]
 	}
 ];
 
 export function getTemplateById(id: string): Template | undefined {
-	return defaultTemplates.find(template => template.id === id);
+	return defaultTemplates.find((template) => template.id === id);
 }
 
 export function getTemplatesByCategory(category: Template['category']): Template[] {
-	return defaultTemplates.filter(template => template.category === category);
+	return defaultTemplates.filter((template) => template.category === category);
 }

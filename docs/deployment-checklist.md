@@ -3,20 +3,24 @@
 ## 배포 전 확인사항
 
 ### 1. 코드 검증
+
 - [ ] `pnpm check` 실행하여 타입 오류 없음 확인
 - [ ] `pnpm lint` 실행하여 린트 오류 없음 확인
 - [ ] `pnpm test` 실행하여 모든 테스트 통과 확인
 
 ### 2. 빌드 테스트
+
 - [ ] `pnpm build` 성공적으로 완료
 - [ ] `pnpm preview` 로 로컬에서 빌드 결과 확인
 - [ ] 모든 페이지와 기능이 정상 작동하는지 확인
 
 ### 3. GitHub 설정
+
 - [ ] GitHub Pages가 "GitHub Actions" 소스로 설정되어 있는지 확인
 - [ ] `.github/workflows/deploy.yml` 파일이 존재하는지 확인
 
 ### 4. 배포
+
 - [ ] 모든 변경사항 커밋
 - [ ] `main` 브랜치에 푸시
 - [ ] GitHub Actions에서 워크플로우 성공 확인
@@ -32,7 +36,7 @@
 
 ## 문제 발생 시
 
-1. **404 에러**: 
+1. **404 에러**:
    - `fallback: 'index.html'` 설정 확인
    - BASE_PATH 설정 확인
 

@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Visual CMS Editor - A next-generation headless visual CMS library that completely separates design and content, enabling safe visual editing without breaking designs.
 
 **Tech Stack:**
+
 - SvelteKit 2.16.0 with Svelte 5.0.0
 - TypeScript 5.0.0 (strict mode)
 - Tailwind CSS 4.0.0 with Forms and Typography plugins
@@ -36,6 +37,7 @@ pnpm test:e2e     # Playwright E2E tests
 ## Architecture
 
 ### File Structure
+
 ```
 src/
 ├── routes/          # SvelteKit pages and layouts
@@ -56,6 +58,7 @@ src/
 ```
 
 ### Key Configurations
+
 - **Static Site Generation**: Uses `@sveltejs/adapter-static` with CSR-only mode
 - **Test Environments**: Separate configs for client (browser) and server (node)
 - **I18n**: Messages in `/messages/{locale}.json` (en, ko) with Paraglide.js
@@ -83,6 +86,7 @@ The project has **two parallel implementations**:
 ### Core Features
 
 #### History Management (`/src/lib/core/history/`)
+
 - Loro CRDT for conflict-free replicated data types
 - Undo/redo with keyboard shortcuts
 - 500ms debouncing for edit grouping
@@ -91,6 +95,7 @@ The project has **two parallel implementations**:
 - Future: Real-time collaboration support
 
 #### Selection System
+
 - Click-based selection with visual overlay
 - Multi-selection with Shift/Cmd+Click
 - Keyboard navigation (Tab, Shift+Tab, Arrow keys)
@@ -98,12 +103,14 @@ The project has **two parallel implementations**:
 - Escape key for deselection
 
 ### Data Attribute Conventions
+
 - `data-editable="text|image|icon|link"` - Defines editable element type
 - `data-max-length="50"` - Content constraints
 - `data-repeatable="feature"` - Marks repeatable containers
 - `data-min/max` - Container constraints
 
 ### Testing Strategy
+
 - **Unit Tests**: Vitest with separate browser/server environments
 - **E2E Tests**: Playwright on port 4173
 - **Test Files**: `*.{test,spec}.{js,ts}` and `*.svelte.{test,spec}.{js,ts}`
@@ -112,7 +119,7 @@ The project has **two parallel implementations**:
 ## Development Guidelines
 
 1. **Incremental Development**: Build and verify features one at a time
-2. **Code Organization**: 
+2. **Code Organization**:
    - Keep files under 300 lines
    - Apply OCP (Open/Closed Principle)
    - Design for pluggability and easy deletion
@@ -135,6 +142,7 @@ The project has **two parallel implementations**:
 ## Dual-Mode System (Planned)
 
 The editor will support two distinct modes:
+
 - **Design Mode**: For developers/designers to define editable zones
 - **Content Mode**: For content editors with restricted, safe editing
 

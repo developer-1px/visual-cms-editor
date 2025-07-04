@@ -1,16 +1,16 @@
 <script lang="ts">
-import { Undo2, Redo2, Clock } from 'lucide-svelte';
-import type { HistoryInfo } from '$lib/core/history';
+	import { Undo2, Redo2, Clock } from 'lucide-svelte';
+	import type { HistoryInfo } from '$lib/core/history';
 
-export let historyInfo: HistoryInfo;
-export let onHistoryAction: (action: 'undo' | 'redo') => void;
+	export let historyInfo: HistoryInfo;
+	export let onHistoryAction: (action: 'undo' | 'redo') => void;
 </script>
 
-<div class="space-y-6 animate-fade-in">
+<div class="animate-fade-in space-y-6">
 	<!-- History Info -->
 	<div class="card p-4">
-		<h4 class="text-sm font-medium text-stone-900 mb-3 flex items-center gap-2">
-			<Clock class="w-4 h-4" />
+		<h4 class="mb-3 flex items-center gap-2 text-sm font-medium text-stone-900">
+			<Clock class="h-4 w-4" />
 			History
 		</h4>
 		<div class="space-y-2 text-xs">
@@ -30,17 +30,17 @@ export let onHistoryAction: (action: 'undo' | 'redo') => void;
 		<button
 			onclick={() => onHistoryAction('undo')}
 			disabled={!historyInfo.canUndo}
-			class="btn w-full text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+			class="btn w-full text-sm disabled:cursor-not-allowed disabled:opacity-50"
 		>
-			<Undo2 class="w-4 h-4 mr-2" />
+			<Undo2 class="mr-2 h-4 w-4" />
 			Undo
 		</button>
 		<button
 			onclick={() => onHistoryAction('redo')}
 			disabled={!historyInfo.canRedo}
-			class="btn w-full text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+			class="btn w-full text-sm disabled:cursor-not-allowed disabled:opacity-50"
 		>
-			<Redo2 class="w-4 h-4 mr-2" />
+			<Redo2 class="mr-2 h-4 w-4" />
 			Redo
 		</button>
 	</div>
@@ -48,11 +48,11 @@ export let onHistoryAction: (action: 'undo' | 'redo') => void;
 	<!-- Content Preview -->
 	{#if historyInfo.currentText}
 		<div class="card p-4">
-			<h4 class="text-sm font-medium text-stone-900 mb-3">Current Content</h4>
-			<div class="bg-stone-50 p-3 text-xs text-stone-800 font-mono">
+			<h4 class="mb-3 text-sm font-medium text-stone-900">Current Content</h4>
+			<div class="bg-stone-50 p-3 font-mono text-xs text-stone-800">
 				{historyInfo.currentText}
 			</div>
-			<div class="text-xs text-stone-500 mt-2">
+			<div class="mt-2 text-xs text-stone-500">
 				{historyInfo.currentText.length} characters
 			</div>
 		</div>

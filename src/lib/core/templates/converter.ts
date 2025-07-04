@@ -8,11 +8,7 @@ export class TemplateConverter {
 		template: Template,
 		options: TemplateToComponentOptions = {}
 	): string {
-		const {
-			preserveStyles = true,
-			addEditableMarkers = true,
-			generateProps = false
-		} = options;
+		const { preserveStyles = true, addEditableMarkers = true, generateProps = false } = options;
 
 		// HTML을 파싱하여 DOM 생성
 		const parser = new DOMParser();
@@ -21,11 +17,11 @@ export class TemplateConverter {
 
 		// 편집 가능한 요소들에 data-editable 속성 추가
 		if (addEditableMarkers) {
-			template.editableElements.forEach(element => {
+			template.editableElements.forEach((element) => {
 				const targets = body.querySelectorAll(element.selector);
-				targets.forEach(target => {
+				targets.forEach((target) => {
 					target.setAttribute('data-editable', element.type);
-					
+
 					// 제약사항 추가
 					if (element.constraints?.maxLength) {
 						target.setAttribute('data-max-length', element.constraints.maxLength.toString());
@@ -36,7 +32,7 @@ export class TemplateConverter {
 
 		// Svelte 컴포넌트 생성
 		const componentCode = this.generateSvelteComponent(body.innerHTML, template, options);
-		
+
 		return componentCode;
 	}
 
@@ -50,7 +46,7 @@ export class TemplateConverter {
 	): string {
 		const props = options.generateProps ? this.generateProps(template) : '';
 		const eventHandlers = this.generateEventHandlers();
-		
+
 		return `<script lang="ts">
 	import { getContext } from 'svelte';
 	${props}
@@ -72,8 +68,8 @@ ${this.processHtmlForSvelte(processedHtml)}
 	 */
 	private static generateProps(template: Template): string {
 		const props = template.editableElements
-			.filter(el => el.type === 'text')
-			.map(el => {
+			.filter((el) => el.type === 'text')
+			.map((el) => {
 				const propName = this.selectorToPropName(el.selector);
 				return `export let ${propName} = '${el.defaultValue}';`;
 			})
