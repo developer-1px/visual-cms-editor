@@ -23,6 +23,7 @@ import {
 	type SelectionType
 } from '$lib/core/selection/SelectionManager';
 import { editablePluginManager } from '$lib/core/plugins/editable';
+import { selectionActionManager, initializeActionHandlers } from '$lib/core/actions';
 
 type Mode = 'select' | 'edit';
 
@@ -525,48 +526,44 @@ function handleKeydown(e: KeyboardEvent) {
 	}
 }
 
-function handleCopyShortcut() {
+// 🚀 새로운 전략 패턴 기반 핸들러들 - 분기 로직 제거!
+async function handleCopyShortcut() {
 	if (firstSelected) {
-		if (selectedType === 'image') {
-			editablePluginManager.handleAction(firstSelected, 'copy');
-		} else if (selectedType === 'repeatable') {
-			copySelectedRepeatable();
-		} else {
-			copySelected();
+		try {
+			await selectionActionManager.executeAction('copy', firstSelected, selectedType);
+		} catch (error) {
+			console.error('Copy action failed:', error);
 		}
 	}
 }
 
-function handleCutShortcut() {
+async function handleCutShortcut() {
 	if (firstSelected) {
-		if (selectedType === 'image') {
-			editablePluginManager.handleAction(firstSelected, 'cut');
-		} else if (selectedType === 'repeatable') {
-			cutSelectedRepeatable();
+		try {
+			await selectionActionManager.executeAction('cut', firstSelected, selectedType);
+		} catch (error) {
+			console.error('Cut action failed:', error);
 		}
 	}
 }
 
-function handlePasteShortcut() {
+async function handlePasteShortcut() {
 	if (firstSelected) {
-		if (selectedType === 'image') {
-			editablePluginManager.handleAction(firstSelected, 'paste');
-		} else if (selectedType === 'repeatable' && copiedElement) {
-			pasteRepeatable();
+		try {
+			await selectionActionManager.executeAction('paste', firstSelected, selectedType);
+		} catch (error) {
+			console.error('Paste action failed:', error);
 		}
 	}
 }
 
-function handleDeleteShortcut() {
+async function handleDeleteShortcut() {
 	console.log('Delete shortcut triggered', { firstSelected, selectedType, isEditing });
 	if (firstSelected) {
-		if (selectedType === 'image') {
-			console.log('Deleting image element');
-			editablePluginManager.handleAction(firstSelected, 'delete');
-		} else if (selectedType === 'repeatable') {
-			deleteSelectedRepeatable();
-		} else {
-			deleteSelected();
+		try {
+			await selectionActionManager.executeAction('delete', firstSelected, selectedType);
+		} catch (error) {
+			console.error('Delete action failed:', error);
 		}
 	}
 }
@@ -697,10 +694,50 @@ function handleDoubleClick(e: MouseEvent) {
 	}
 }
 
+// 🚀 RepeatableActionHandler 이벤트 핸들러들
+function handleSaveHistoryState(e: Event) {
+	if (contentContainer) {
+		historyManager.saveStructuralState(contentContainer);
+	}
+}
+
+function handleUpdateHistoryState(e: Event) {
+	updateHistoryState();
+}
+
+function handleElementPasted(e: Event) {
+	const customEvent = e as CustomEvent;
+	const newElement = customEvent.detail?.newElement;
+	
+	if (newElement) {
+		// 새 요소 선택
+		deselectAll();
+		selectElement(newElement, false);
+	}
+}
+
+function handleNeedsHydration(e: Event) {
+	const customEvent = e as CustomEvent;
+	const element = customEvent.detail?.element;
+	
+	if (element) {
+		hydrateNewElement(element);
+	}
+}
+
 onMount(() => {
+	// 🚀 액션 핸들러 시스템 초기화
+	initializeActionHandlers();
+	
 	document.addEventListener('click', deselectAll);
 	document.addEventListener('dblclick', handleDoubleClick);
 	document.addEventListener('keydown', handleKeydown);
+	
+	// RepeatableActionHandler 이벤트 리스너 추가
+	document.addEventListener('saveHistoryState', handleSaveHistoryState);
+	document.addEventListener('updateHistoryState', handleUpdateHistoryState);
+	document.addEventListener('elementPasted', handleElementPasted);
+	document.addEventListener('needsHydration', handleNeedsHydration);
 	
 	updateHistoryState();
 	
@@ -720,6 +757,10 @@ onMount(() => {
 		document.removeEventListener('click', deselectAll);
 		document.removeEventListener('dblclick', handleDoubleClick);
 		document.removeEventListener('keydown', handleKeydown);
+		document.removeEventListener('saveHistoryState', handleSaveHistoryState);
+		document.removeEventListener('updateHistoryState', handleUpdateHistoryState);
+		document.removeEventListener('elementPasted', handleElementPasted);
+		document.removeEventListener('needsHydration', handleNeedsHydration);
 	};
 });
 </script>
