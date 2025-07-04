@@ -1,16 +1,26 @@
 <script lang="ts">
-import { Settings, History as HistoryIcon, X } from 'lucide-svelte';
+import { Settings, History as HistoryIcon, X, Bug } from 'lucide-svelte';
 import Inspector from './Inspector.svelte';
 import History from './History.svelte';
 import type { HistoryInfo } from '$lib/core/history';
+import { 
+	selectedItems,
+	selectedElements,
+	selectedSectionIndex,
+	activeSelectionType,
+	activeSelectionContext,
+	selectionCount,
+	selectionManager
+} from '$lib/core/selection/SelectionManager';
+import { historyManager } from '$lib/core/history';
 
 export let selectedElement: HTMLElement | null = null;
 export let historyInfo: HistoryInfo | null = null;
 export let onHistoryAction: (action: 'undo' | 'redo') => void;
 export let isOpen = false;
 
-type Tab = 'inspector' | 'history';
-let activeTab: Tab = 'inspector';
+type Tab = 'debug' | 'inspector' | 'history';
+let activeTab: Tab = 'debug';
 
 $: hasSelection = !!selectedElement;
 $: hasHistory = !!historyInfo;
@@ -35,6 +45,13 @@ $: hasHistory = !!historyInfo;
 				<!-- Tabs -->
 				<div class="flex gap-1">
 					<button
+						class="flex items-center gap-2 px-3 py-2 text-sm transition-colors {activeTab === 'debug' ? 'bg-blue-500 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'}"
+						onclick={() => activeTab = 'debug'}
+					>
+						<Bug class="w-4 h-4" />
+						Debug
+					</button>
+					<button
 						class="flex items-center gap-2 px-3 py-2 text-sm transition-colors {activeTab === 'inspector' ? 'bg-blue-500 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'}"
 						onclick={() => activeTab = 'inspector'}
 					>
@@ -54,7 +71,63 @@ $: hasHistory = !!historyInfo;
 
 			<!-- Tab Content -->
 			<div class="flex-1 overflow-y-auto">
-				{#if activeTab === 'inspector'}
+				{#if activeTab === 'debug'}
+					<div class="p-4">
+						<!-- Debug State Display -->
+						<div class="space-y-4">
+							<div>
+								<h3 class="text-sm font-semibold text-stone-700 mb-2">Selection State</h3>
+								<pre class="bg-stone-100 p-3 rounded text-xs overflow-x-auto">{JSON.stringify({
+	selectedItems: Array.from($selectedItems).map(item => ({
+		id: item.id,
+		type: item.type,
+		context: item.context,
+		element: item.element instanceof HTMLElement ? {
+			tagName: item.element.tagName,
+			className: item.element.className,
+			id: item.element.id || 'no-id',
+			dataAttributes: Object.fromEntries(
+				Object.entries(item.element.dataset)
+			)
+		} : item.element,
+		data: item.data
+	})),
+	selectedSectionIndex: $selectedSectionIndex,
+	activeType: $activeSelectionType,
+	activeContext: $activeSelectionContext,
+	selectionCount: $selectionCount
+}, null, 2)}</pre>
+							</div>
+							
+							<div>
+								<h3 class="text-sm font-semibold text-stone-700 mb-2">History State</h3>
+								<pre class="bg-stone-100 p-3 rounded text-xs overflow-x-auto">{JSON.stringify({
+	canUndo: historyManager.canUndo(),
+	canRedo: historyManager.canRedo(),
+	historyLength: historyManager.getHistoryLength(),
+	currentVersion: historyManager.getCurrentVersion()
+}, null, 2)}</pre>
+							</div>
+							
+							<div>
+								<h3 class="text-sm font-semibold text-stone-700 mb-2">Selection Manager Config</h3>
+								<pre class="bg-stone-100 p-3 rounded text-xs overflow-x-auto">{JSON.stringify({
+	mode: selectionManager.getConfig().mode,
+	allowCrossContext: selectionManager.getConfig().allowCrossContext,
+	styles: Object.fromEntries(
+			Object.entries(selectionManager.getConfig().styles).map(([key, style]) => [
+				key,
+				{
+					color: style.color,
+					outline: style.outline
+				}
+			])
+		)
+}, null, 2)}</pre>
+							</div>
+						</div>
+					</div>
+				{:else if activeTab === 'inspector'}
 					<div class="p-4">
 						{#if !hasSelection}
 							<!-- Empty State -->

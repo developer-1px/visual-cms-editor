@@ -277,6 +277,11 @@ export class SelectionManager {
     return Array.from(get(this.items).values()).filter(item => item.context === context);
   }
   
+  // Get current configuration
+  public getConfig(): SelectionConfig {
+    return get(this.config);
+  }
+  
   // Update configuration
   public updateConfig(config: Partial<SelectionConfig>): void {
     this.config.update(current => ({ ...current, ...config }));

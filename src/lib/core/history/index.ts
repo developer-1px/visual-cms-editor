@@ -416,6 +416,18 @@ export class LoroHistoryManager implements HistoryManager {
 			this.structuralHistoryIndex--;
 		}
 	}
+	
+	// Get current history state for debugging
+	getHistoryLength(): number {
+		return Math.max(this.editHistory.length, this.structuralSnapshots.length);
+	}
+	
+	getCurrentVersion(): { text: number, structural: number } {
+		return {
+			text: this.editHistoryIndex + 1,
+			structural: this.structuralHistoryIndex + 1
+		};
+	}
 
 }
 

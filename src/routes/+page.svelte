@@ -26,7 +26,7 @@ import {
 type Mode = 'select' | 'edit';
 
 let mode: Mode = 'select';
-let rightPanelOpen = false;
+let rightPanelOpen = true;
 let leftSidebarOpen = true;
 let canUndo = false;
 let canRedo = false;
@@ -574,7 +574,8 @@ function handleSelectSection(index: number) {
 	deselectAll();
 	
 	// Use the unified selection manager for section selection
-	selectionManager.select(index, 'section', 'sidebar', selectedTemplates[index]);
+	// This will be available to both sidebar and canvas
+	selectionManager.select(index, 'section', 'canvas', selectedTemplates[index]);
 	
 	// Scroll to the selected section
 	const sectionElements = contentContainer?.querySelectorAll('.template-section');
@@ -780,7 +781,31 @@ onMount(() => {
 					<!-- Templates -->
 					<div class="space-y-8">
 				{#each selectedTemplates as template, index (template.id + index)}
-					<div class="template-section animate-fade-in {$selectedSectionIndex === index ? 'ring-2 ring-blue-500 ring-offset-4' : ''}" style="animation-delay: {index * 0.1}s">
+					<div 
+						class="template-section animate-fade-in {$selectedSectionIndex === index ? 'selected-section' : ''}" 
+						style="animation-delay: {index * 0.1}s"
+						data-section-index={index}
+						onclick={(e) => {
+							// Check if clicking on an editable element
+							const target = e.target as HTMLElement;
+							const editable = target.closest('[data-editable]');
+							const repeatable = target.closest('[data-repeatable]');
+							
+							// If not clicking on editable/repeatable content, select the section
+							if (!editable && !repeatable) {
+								e.stopPropagation();
+								handleSelectSection(index);
+							}
+						}}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								handleSelectSection(index);
+							}
+						}}
+						role="button"
+						tabindex="0"
+					>
 						<TemplateRenderer
 							{template}
 							{handleElementClick}
@@ -887,6 +912,54 @@ onMount(() => {
 		font-weight: 600;
 		white-space: nowrap;
 		pointer-events: none;
+	}
+	
+	/* Section styles */
+	.template-section {
+		position: relative;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		border-radius: 8px;
+		padding: 2px;
+		margin: -2px;
+	}
+	
+	.template-section:hover {
+		outline: 2px dashed #6366f1;
+		outline-offset: 4px;
+		background-color: rgba(99, 102, 241, 0.02);
+	}
+	
+	.template-section:focus {
+		outline: 2px solid #6366f1;
+		outline-offset: 4px;
+	}
+	
+	.template-section:focus-visible {
+		outline: 2px solid #6366f1;
+		outline-offset: 4px;
+	}
+	
+	/* Selected section styles */
+	.template-section.selected-section {
+		outline: 2px solid #6366f1;
+		outline-offset: 4px;
+		background-color: rgba(99, 102, 241, 0.05);
+		box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.1);
+	}
+	
+	/* Prevent section hover when hovering on child elements */
+	.template-section:has([data-editable]:hover),
+	.template-section:has([data-repeatable]:hover) {
+		outline: none;
+		background-color: transparent;
+	}
+	
+	/* Don't show section hover styles when a section is selected and hovering over elements */
+	.template-section.selected-section:has([data-editable]:hover),
+	.template-section.selected-section:has([data-repeatable]:hover) {
+		outline: 2px solid #6366f1;
+		background-color: rgba(99, 102, 241, 0.05);
 	}
 	
 </style>

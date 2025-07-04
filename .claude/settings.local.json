@@ -16,7 +16,10 @@
       "Bash(git push:*)",
       "Bash(git remote add:*)",
       "Bash(pnpm check:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(BASE_PATH=/visual-cms-editor pnpm build)",
+      "Bash(cp:*)",
+      "Bash(npx gh-pages:*)"
     ],
     "deny": []
   }
