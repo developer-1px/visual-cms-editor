@@ -1,205 +1,126 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { computePosition, flip, shift, offset } from '@floating-ui/dom';
+	import { Type, Copy, Trash2, Replace, Link, ArrowUp, ArrowDown, Eye, EyeOff } from 'lucide-svelte';
 	import {
-		Edit2,
-		Copy,
-		Trash2,
-		Type,
-		Scissors,
-		Eye,
-		ChevronUp,
-		ChevronDown,
-		Upload,
-		RotateCw,
-		Settings
-	} from 'lucide-svelte';
-	import {
-		selectedItems,
 		selectedElements,
 		activeSelectionType,
 		activeSelectionStyle,
-		selectionCount,
-		isSelectionEmpty
+		isSelectionEmpty,
+		selectedSectionIndex
 	} from '$lib/core/selection/SelectionManager';
-	import { editablePluginManager } from '$lib/core/plugins/editable';
+	
+	interface Props {
+		container?: HTMLElement | null;
+		onAction?: (action: string, data?: any) => void;
+	}
+	
+	let { container = null, onAction }: Props = $props();
+	
+	let overlayElement = $state<HTMLElement | undefined>();
+	let visible = $state(false);
+	let position = $state({ x: 0, y: 0 });
 
-	export let container: HTMLElement | null = null;
-	export let onAction: (action: string, data?: any) => void = () => {};
-
-	let overlayElement: HTMLElement;
-	let visible = false;
-	let position = { x: 0, y: 0 };
-
-	// Overlay actions based on selection type
-	$: actions = getActionsForType($activeSelectionType);
-	$: overlayColor = $activeSelectionStyle?.overlayColor || 'rgb(31, 41, 55)'; // stone-900
-
+	// Get actions based on selection type
+	let actions = $derived(getActionsForType($activeSelectionType));
+	
 	function getActionsForType(type: string | null) {
 		if (!type) return [];
-
-		// Get plugin-specific actions if available
-		const firstElement = Array.from($selectedElements)[0];
-		if (firstElement && firstElement.dataset.editable) {
-			const pluginActions = editablePluginManager.getActions(firstElement);
-			if (pluginActions.length > 0) {
-				return pluginActions.map((action) => ({
-					id: action.id,
-					icon: getIconForAction(action.icon || action.id),
-					title: action.label,
-					color: action.isDestructive ? 'text-red-400' : undefined,
-					handler: action.handler
-				}));
-			}
-		}
-
-		const commonActions = [
-			{ id: 'copy', icon: Copy, title: 'Copy', shortcut: 'Ctrl+C' },
-			{ id: 'delete', icon: Trash2, title: 'Delete', shortcut: 'Delete', color: 'text-red-400' }
-		];
-
+		
 		switch (type) {
 			case 'text':
-				return [{ id: 'edit', icon: Type, title: 'Edit', shortcut: 'Enter' }, ...commonActions];
+				return [
+					{ id: 'edit', icon: Type, title: 'Edit' },
+					{ id: 'copy', icon: Copy, title: 'Copy' },
+					{ id: 'cut', icon: Trash2, title: 'Cut' },
+					{ id: 'delete', icon: Trash2, title: 'Delete', color: 'text-red-600' }
+				];
 			case 'image':
 				return [
-					{ id: 'upload', icon: Upload, title: 'Upload Image' },
-					{ id: 'replace', icon: RotateCw, title: 'Replace Image' },
-					{ id: 'delete', icon: Trash2, title: 'Remove Image', color: 'text-red-400' }
+					{ id: 'replace', icon: Replace, title: 'Replace' },
+					{ id: 'copy', icon: Copy, title: 'Copy' },
+					{ id: 'delete', icon: Trash2, title: 'Delete', color: 'text-red-600' }
 				];
 			case 'icon':
 				return [
-					{ id: 'change-icon', icon: Edit2, title: 'Change Icon' },
-					{ id: 'customize', icon: Settings, title: 'Customize' },
-					{ id: 'remove', icon: Trash2, title: 'Remove Icon', color: 'text-red-400' }
-				];
-			case 'repeatable':
-				return [...commonActions, { id: 'cut', icon: Scissors, title: 'Cut', shortcut: 'Ctrl+X' }];
-			case 'section':
-				return [
-					{ id: 'moveUp', icon: ChevronUp, title: 'Move Up' },
-					{ id: 'moveDown', icon: ChevronDown, title: 'Move Down' },
-					{ id: 'toggleVisibility', icon: Eye, title: 'Toggle Visibility' },
-					{ id: 'delete', icon: Trash2, title: 'Remove Section', color: 'text-red-400' }
+					{ id: 'replace', icon: Replace, title: 'Replace' },
+					{ id: 'copy', icon: Copy, title: 'Copy' },
+					{ id: 'delete', icon: Trash2, title: 'Delete', color: 'text-red-600' }
 				];
 			case 'link':
-				return [{ id: 'editLink', icon: Edit2, title: 'Edit Link' }, ...commonActions];
+				return [
+					{ id: 'editLink', icon: Link, title: 'Edit Link' },
+					{ id: 'copy', icon: Copy, title: 'Copy' },
+					{ id: 'delete', icon: Trash2, title: 'Delete', color: 'text-red-600' }
+				];
+			case 'repeatable':
+				return [
+					{ id: 'copy', icon: Copy, title: 'Copy' },
+					{ id: 'cut', icon: Trash2, title: 'Cut' },
+					{ id: 'delete', icon: Trash2, title: 'Delete', color: 'text-red-600' }
+				];
+			case 'section':
+				return [
+					{ id: 'moveUp', icon: ArrowUp, title: 'Move Up', disabled: $selectedSectionIndex === 0 },
+					{ id: 'moveDown', icon: ArrowDown, title: 'Move Down' },
+					{ id: 'toggleVisibility', icon: Eye, title: 'Toggle Visibility' },
+					{ id: 'delete', icon: Trash2, title: 'Delete', color: 'text-red-600' }
+				];
 			default:
-				return commonActions;
+				return [];
 		}
 	}
-
-	function getIconForAction(iconName: string) {
-		const iconMap: Record<string, any> = {
-			edit: Edit2,
-			upload: Upload,
-			refresh: RotateCw,
-			settings: Settings,
-			trash: Trash2,
-			copy: Copy,
-			cut: Scissors
-		};
-		return iconMap[iconName] || Edit2;
+	
+	function handleAction(action: string) {
+		onAction?.(action);
 	}
 
 	async function updatePosition() {
-		if ($isSelectionEmpty || !container || !overlayElement) {
+		if ($isSelectionEmpty || !overlayElement) {
 			visible = false;
 			return;
 		}
-
-		// Get the first selected element or section bounds
-		const firstItem = Array.from($selectedItems)[0];
-		if (!firstItem) {
-			visible = false;
-			return;
-		}
-
-		let referenceRect: DOMRect;
-
-		if (firstItem.context === 'sidebar' && typeof firstItem.element === 'number') {
-			// For section selections, position near the section in sidebar
-			const sectionElements = document.querySelectorAll('.template-section');
-			const sectionElement = sectionElements[firstItem.element] as HTMLElement;
-			if (!sectionElement || !(sectionElement instanceof HTMLElement)) {
-				visible = false;
-				return;
+		
+		// Get the first selected element
+		const firstElement = Array.from($selectedElements)[0];
+		
+		if (!firstElement) {
+			// For section selection, position at the section
+			if ($activeSelectionType === 'section' && $selectedSectionIndex !== null && container) {
+				const sections = container.querySelectorAll('.template-section');
+				const sectionElement = sections[$selectedSectionIndex] as HTMLElement;
+				if (sectionElement) {
+					const { x, y } = await computePosition(sectionElement, overlayElement, {
+						placement: 'top',
+						middleware: [offset(8), flip(), shift({ padding: 8 })]
+					});
+					
+					position = { x, y };
+					visible = true;
+					return;
+				}
 			}
-			referenceRect = sectionElement.getBoundingClientRect();
-		} else if (firstItem.element instanceof HTMLElement) {
-			// For canvas elements
-			referenceRect = firstItem.element.getBoundingClientRect();
-		} else {
 			visible = false;
 			return;
 		}
-
-		// Calculate position relative to container
-		const containerRect = container.getBoundingClientRect();
-		const relativeRect = {
-			top: referenceRect.top - containerRect.top,
-			left: referenceRect.left - containerRect.left,
-			bottom: referenceRect.bottom - containerRect.top,
-			right: referenceRect.right - containerRect.left,
-			width: referenceRect.width,
-			height: referenceRect.height
-		};
-
-		// Use floating-ui for positioning
-		const virtualEl = {
-			getBoundingClientRect() {
-				return {
-					x: containerRect.left + relativeRect.left,
-					y: containerRect.top + relativeRect.top,
-					top: containerRect.top + relativeRect.top,
-					left: containerRect.left + relativeRect.left,
-					bottom: containerRect.top + relativeRect.bottom,
-					right: containerRect.left + relativeRect.right,
-					width: relativeRect.width,
-					height: relativeRect.height
-				};
-			}
-		};
-
-		const { x, y } = await computePosition(virtualEl, overlayElement, {
+		
+		const { x, y } = await computePosition(firstElement, overlayElement, {
 			placement: 'top',
 			middleware: [offset(8), flip(), shift({ padding: 8 })]
 		});
-
-		// Set position relative to container
-		position = {
-			x: x - containerRect.left,
-			y: y - containerRect.top
-		};
-
+		
+		position = { x, y };
 		visible = true;
 	}
 
-	function handleAction(actionId: string, customHandler?: Function) {
-		// If there's a custom handler (from plugin), use it
-		if (customHandler) {
-			customHandler();
-			return;
-		}
-
-		// Otherwise, use the default action handler
-		onAction(actionId, {
-			selection: $selectedItems,
-			type: $activeSelectionType
-		});
-	}
-
 	// Update position when selection changes
-	$: if ($selectedItems.size > 0) {
-		// Add a small delay to ensure overlayElement is bound
-		setTimeout(() => {
-			if (overlayElement) {
-				updatePosition();
-			}
-		}, 10);
-	} else {
-		visible = false;
-	}
+	$effect(() => {
+		if (!$isSelectionEmpty && overlayElement) {
+			updatePosition();
+		} else {
+			visible = false;
+		}
+	});
 
 	// Handle window resize
 	onMount(() => {
@@ -212,43 +133,52 @@
 	});
 </script>
 
-{#if visible && !$isSelectionEmpty && container}
+{#if visible}
 	<div
 		bind:this={overlayElement}
-		class="animate-fade-in floating-ui absolute z-30 flex items-center gap-1 px-1 py-1 shadow-xl"
-		style="
-			left: {position.x}px; 
-			top: {position.y}px; 
-			background-color: {overlayColor};
-			border-radius: 8px;
-		"
+		class="selection-overlay"
+		style="left: {position.x}px; top: {position.y}px;"
 	>
-		{#each actions as action}
-			{#if action.id === 'divider'}
-				<div class="h-5 w-px bg-white/20"></div>
-			{:else}
+		<div class="floating-ui animate-fade-in">
+			{#each actions as action}
 				<button
-					class="flex h-8 w-8 items-center justify-center rounded text-white transition-all hover:bg-white/20 {action.color ||
-						''}"
-					on:click={() => handleAction(action.id, action.handler)}
-					title="{action.title}{action.shortcut ? ` (${action.shortcut})` : ''}"
+					onclick={() => handleAction(action.id)}
+					class="px-3 py-1 bg-white hover:bg-gray-50 text-sm {action.color || ''}"
+					class:border-r={action !== actions[actions.length - 1]}
+					class:rounded-l-md={action === actions[0]}
+					class:rounded-r-md={action === actions[actions.length - 1]}
 				>
-					<svelte:component this={action.icon} class="h-4 w-4" />
+					{action.title}
 				</button>
-			{/if}
-		{/each}
-
-		{#if $selectionCount > 1}
-			<div class="px-2 text-xs text-white/80">
-				{$selectionCount}
-			</div>
-		{/if}
+			{/each}
+		</div>
 	</div>
 {/if}
 
 <style>
-	.floating-ui {
+	.selection-overlay {
+		position: fixed;
+		z-index: 9999;
 		pointer-events: auto;
+	}
+	
+	.floating-ui {
+		display: flex;
+		background-color: white;
+		border: 1px solid #e5e7eb;
+		border-radius: 8px;
+		box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+		overflow: hidden;
+	}
+	
+	button {
+		transition: all 0.15s ease;
+		border-color: #e5e7eb;
+	}
+	
+	button:focus {
+		outline: 2px solid #3b82f6;
+		outline-offset: -2px;
 	}
 
 	.animate-fade-in {

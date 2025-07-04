@@ -54,16 +54,14 @@ export const imagePlugin: EditablePlugin = {
 		if (img) {
 			if (value) {
 				img.src = value;
-				img.style.display = 'block';
-				if (placeholder) {
-					placeholder.style.display = 'none';
-				}
+				// Use CSS custom properties for display control
+				element.style.setProperty('--image-display', 'block');
+				element.style.setProperty('--placeholder-display', 'none');
 			} else {
 				img.src = '';
-				img.style.display = 'none';
-				if (placeholder) {
-					placeholder.style.display = 'flex';
-				}
+				// Use CSS custom properties for display control
+				element.style.setProperty('--image-display', 'none');
+				element.style.setProperty('--placeholder-display', 'flex');
 			}
 		}
 	},
@@ -152,18 +150,16 @@ export const imagePlugin: EditablePlugin = {
 
 	applyStyles(element: HTMLElement, selected: boolean): void {
 		if (selected) {
-			// Now element is the container itself
-			element.style.outline = '2px solid rgb(251, 146, 60)';
-			element.style.outlineOffset = '2px';
-			element.style.backgroundColor = 'rgba(251, 146, 60, 0.1)';
+			// Model-driven approach - styles are applied via CSS
+			element.setAttribute('data-selected', 'true');
+			element.setAttribute('data-selection-type', 'image');
 		}
 	},
 
 	removeStyles(element: HTMLElement): void {
-		// Now element is the container itself
-		element.style.outline = '';
-		element.style.outlineOffset = '';
-		element.style.backgroundColor = '';
+		// Remove data attributes
+		element.removeAttribute('data-selected');
+		element.removeAttribute('data-selection-type');
 	},
 
 	// Private methods

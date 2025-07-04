@@ -221,9 +221,9 @@ export class TextActionHandler implements ActionHandler {
 		try {
 			const textArea = document.createElement('textarea');
 			textArea.value = text;
-			textArea.style.position = 'fixed';
-			textArea.style.left = '-999999px';
-			textArea.style.top = '-999999px';
+			// Use sr-only pattern for hidden textarea
+			textArea.setAttribute('style', 'position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;');
+			textArea.setAttribute('aria-hidden', 'true');
 			document.body.appendChild(textArea);
 			textArea.focus();
 			textArea.select();

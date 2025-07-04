@@ -133,18 +133,16 @@ export const iconPlugin: EditablePlugin = {
 
 	applyStyles(element: HTMLElement, selected: boolean): void {
 		if (selected) {
-			element.style.outline = '2px solid rgb(168, 85, 247)';
-			element.style.outlineOffset = '2px';
-			element.style.backgroundColor = 'rgba(168, 85, 247, 0.1)';
-			element.style.borderRadius = '4px';
+			// Model-driven approach - styles are applied via CSS
+			element.setAttribute('data-selected', 'true');
+			element.setAttribute('data-selection-type', 'icon');
 		}
 	},
 
 	removeStyles(element: HTMLElement): void {
-		element.style.outline = '';
-		element.style.outlineOffset = '';
-		element.style.backgroundColor = '';
-		element.style.borderRadius = '';
+		// Remove data attributes
+		element.removeAttribute('data-selected');
+		element.removeAttribute('data-selection-type');
 	},
 
 	// Private methods

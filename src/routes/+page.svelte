@@ -892,9 +892,6 @@
 
 					<!-- Mock Footer -->
 					<MockFooter {devicePreview} />
-
-					<!-- Unified Selection Overlay -->
-					<SelectionOverlay container={contentContainer} onAction={handleOverlayAction} />
 				</div>
 			</div>
 		</div>
@@ -912,7 +909,13 @@
 <!-- Template Selector -->
 <TemplateSelector bind:isOpen={templateSelectorOpen} onSelectTemplate={handleSelectTemplate} />
 
+<!-- Unified Selection Overlay -->
+<SelectionOverlay container={contentContainer} onAction={handleOverlayAction} />
+
 <style>
+	/* Import selection styles */
+	@import '$lib/styles/selection.css';
+
 	/* Minimal Editor Styles */
 	:global([data-editable]) {
 		cursor: pointer;
@@ -937,14 +940,7 @@
 		background-color: rgba(34, 197, 94, 0.05);
 	}
 
-	:global(*[contenteditable='true']) {
-		outline: 3px solid #f59e0b !important;
-		outline-offset: 3px;
-		background: rgba(245, 158, 11, 0.08);
-		animation: editPulse 2s ease-in-out infinite;
-		border-radius: 4px;
-		position: relative;
-	}
+	/* Edit mode styles are now handled by [data-editing="true"] in selection.css */
 
 	:global(*[contenteditable='true']::before) {
 		content: '';

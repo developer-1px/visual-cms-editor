@@ -6,6 +6,50 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>Visual CMS Editor</title>
 		%sveltekit.head%
+		
+		<!-- Global styles for debugging selection -->
+		<style>
+			/* Force selection styles with highest priority */
+			[data-selected="true"] {
+				outline: 2px solid #3b82f6 !important;
+				outline-offset: 2px !important;
+				background-color: rgba(59, 130, 246, 0.1) !important;
+				position: relative !important;
+				z-index: 1 !important;
+			}
+			
+			[data-editing="true"] {
+				outline: 3px solid #f59e0b !important;
+				outline-offset: 2px !important;
+				background-color: #fef3c7 !important;
+				position: relative !important;
+				z-index: 2 !important;
+			}
+			
+			[data-selected="true"][data-selection-type="image"] {
+				outline-color: #10b981 !important;
+				background-color: rgba(16, 185, 129, 0.1) !important;
+			}
+			
+			/* Debug: make sure we can see data attributes */
+			[data-selected="true"]::before {
+				content: "SELECTED";
+				position: absolute;
+				top: -20px;
+				left: 0;
+				background: #3b82f6;
+				color: white;
+				padding: 2px 6px;
+				font-size: 10px;
+				z-index: 10;
+				pointer-events: none;
+			}
+			
+			[data-editing="true"]::before {
+				content: "EDITING";
+				background: #f59e0b;
+			}
+		</style>
 	</head>
 	<body data-sveltekit-preload-data="hover" class="bg-gray-50">
 		<div style="display: contents">%sveltekit.body%</div>

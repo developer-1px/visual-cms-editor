@@ -347,11 +347,9 @@ export class SelectionManager {
 		const style = config.styles[type];
 
 		if (selected) {
-			element.style.outline = style.outline;
-			element.style.outlineOffset = '2px';
-			if (style.backgroundColor) {
-				element.style.backgroundColor = style.backgroundColor;
-			}
+			// Use data attributes for model-driven styling
+			element.setAttribute('data-selected', 'true');
+			element.setAttribute('data-selection-type', type);
 		}
 
 		// Trigger callback
@@ -359,9 +357,9 @@ export class SelectionManager {
 	}
 
 	private removeStyles(element: HTMLElement): void {
-		element.style.outline = '';
-		element.style.outlineOffset = '';
-		element.style.backgroundColor = '';
+		// Remove data attributes
+		element.removeAttribute('data-selected');
+		element.removeAttribute('data-selection-type');
 	}
 }
 

@@ -98,22 +98,24 @@ export const textPlugin: EditablePlugin = {
 
 	applyStyles(element: HTMLElement, selected: boolean): void {
 		if (selected) {
-			element.style.outline = '2px solid rgb(59, 130, 246)';
-			element.style.outlineOffset = '2px';
-			element.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+			// Model-driven approach - styles are applied via CSS
+			element.setAttribute('data-selected', 'true');
+			element.setAttribute('data-selection-type', 'text');
 		}
 	},
 
 	removeStyles(element: HTMLElement): void {
-		element.style.outline = '';
-		element.style.outlineOffset = '';
-		element.style.backgroundColor = '';
+		// Remove data attributes
+		element.removeAttribute('data-selected');
+		element.removeAttribute('data-selection-type');
 		element.removeAttribute('contenteditable');
+		element.removeAttribute('data-editing');
 	},
 
 	// Private methods
 	startEdit(element: HTMLElement): void {
 		element.contentEditable = 'true';
+		element.setAttribute('data-editing', 'true');
 		element.focus();
 
 		// Select all text
@@ -126,6 +128,7 @@ export const textPlugin: EditablePlugin = {
 
 	stopEdit(element: HTMLElement): void {
 		element.removeAttribute('contenteditable');
+		element.removeAttribute('data-editing');
 		element.blur();
 	},
 
