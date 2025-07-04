@@ -41,7 +41,6 @@ let selectedTemplates: Template[] = [
 	defaultTemplates[3]  // CTA
 ];
 let contentContainer: HTMLElement;
-$: currentSectionIndex = $selectedSectionIndex ?? 0;
 let devicePreview: 'mobile' | 'tablet' | 'desktop' | 'full' = 'full';
 
 $: firstSelected = Array.from($selectedElements)[0];
@@ -759,7 +758,6 @@ onMount(() => {
 <LeftSidebar 
 	bind:isOpen={leftSidebarOpen}
 	templates={selectedTemplates}
-	selectedIndex={currentSectionIndex}
 	onSelectSection={handleSelectSection}
 	onReorderSections={handleReorderSections}
 	onToggleVisibility={handleToggleVisibility}
@@ -782,7 +780,7 @@ onMount(() => {
 					<!-- Templates -->
 					<div class="space-y-8">
 				{#each selectedTemplates as template, index (template.id + index)}
-					<div class="template-section animate-fade-in {currentSectionIndex === index ? 'ring-2 ring-blue-500 ring-offset-4' : ''}" style="animation-delay: {index * 0.1}s">
+					<div class="template-section animate-fade-in {$selectedSectionIndex === index ? 'ring-2 ring-blue-500 ring-offset-4' : ''}" style="animation-delay: {index * 0.1}s">
 						<TemplateRenderer
 							{template}
 							{handleElementClick}
