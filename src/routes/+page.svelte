@@ -1,12 +1,14 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { Edit2, Copy, Trash2, Type, Mouse, Undo2, Redo2, Settings, Grid3X3, Smartphone, Tablet, Monitor, Expand } from 'lucide-svelte';
+import { Edit2, Copy, Trash2, Type, Mouse, Undo2, Redo2, Settings, Grid3X3, Smartphone, Tablet, Monitor, Expand, Plus } from 'lucide-svelte';
 import { computePosition, flip, shift, offset } from '@floating-ui/dom';
 import { historyManager, type HistoryInfo } from '$lib/core/history';
 import RightPanel from '$lib/components/RightPanel.svelte';
 import LeftSidebar from '$lib/components/LeftSidebar.svelte';
 import TemplateSelector from '$lib/components/TemplateSelector.svelte';
 import TemplateRenderer from '$lib/components/TemplateRenderer.svelte';
+import MockHeader from '$lib/components/MockHeader.svelte';
+import MockFooter from '$lib/components/MockFooter.svelte';
 import type { Template } from '$lib/core/templates/templates';
 import { defaultTemplates } from '$lib/core/templates/templates';
 
@@ -400,91 +402,108 @@ onMount(() => {
 });
 </script>
 
-<!-- Center Toolbar Wrapper -->
-<div class="fixed top-2 z-20 flex justify-center" style="left: {leftSidebarOpen ? '160px' : '0'}; right: {rightPanelOpen ? '320px' : '0'};">
-	<!-- Center Toolbar -->
-	<div class="flex items-center gap-3">
-	<!-- Mode Toggle Group -->
-	<div class="flex items-center gap-1 p-1 bg-white shadow-md rounded-lg">
+<!-- Top Bar -->
+<div class="fixed top-0 left-0 right-0 h-12 bg-white border-b border-stone-200 z-30 flex items-center px-2">
+	<!-- Left Section -->
+	<div class="flex items-center gap-2">
+		<!-- Toggle Left Sidebar -->
 		<button
-			class="icon-btn {mode === 'select' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-			onclick={() => switchMode('select')}
-			title="Select Mode"
+			class="icon-btn {leftSidebarOpen ? 'bg-stone-200' : ''}"
+			onclick={() => leftSidebarOpen = !leftSidebarOpen}
+			title="{leftSidebarOpen ? 'Hide' : 'Show'} sections"
 		>
-			<Mouse class="w-4 h-4" />
-		</button>
-		<button
-			class="icon-btn {mode === 'edit' ? (isEditing ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white') : 'text-stone-600'}"
-			onclick={() => switchMode('edit')}
-			title="{isEditing ? 'Editing Text' : 'Edit Mode'}"
-		>
-			<Edit2 class="w-4 h-4" />
+			<svg class="w-4 h-4 text-stone-600 transition-transform {leftSidebarOpen ? '' : 'rotate-180'}" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+				<path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+			</svg>
 		</button>
 	</div>
-	
-	<!-- History Group -->
-	<div class="flex items-center gap-1 p-1 bg-white shadow-md rounded-lg">
-		<button
-			class="icon-btn disabled:opacity-50 disabled:cursor-not-allowed"
-			onclick={undo}
-			disabled={!canUndo}
-			title="Undo"
-		>
-			<Undo2 class="w-4 h-4" />
-		</button>
-		<button
-			class="icon-btn disabled:opacity-50 disabled:cursor-not-allowed"
-			onclick={redo}
-			disabled={!canRedo}
-			title="Redo"
-		>
-			<Redo2 class="w-4 h-4" />
-		</button>
-	</div>
-	
-	<!-- Device Preview Group -->
-	<div class="flex items-center gap-1 p-1 bg-white shadow-md rounded-lg">
-		<button
-			class="icon-btn {devicePreview === 'mobile' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-			onclick={() => devicePreview = 'mobile'}
-			title="Mobile Preview (375px)"
-		>
-			<Smartphone class="w-4 h-4" />
-		</button>
-		<button
-			class="icon-btn {devicePreview === 'tablet' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-			onclick={() => devicePreview = 'tablet'}
-			title="Tablet Preview (768px)"
-		>
-			<Tablet class="w-4 h-4" />
-		</button>
-		<button
-			class="icon-btn {devicePreview === 'desktop' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-			onclick={() => devicePreview = 'desktop'}
-			title="Desktop Preview (1280px)"
-		>
-			<Monitor class="w-4 h-4" />
-		</button>
-		<button
-			class="icon-btn {devicePreview === 'full' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-			onclick={() => devicePreview = 'full'}
-			title="Full Width"
-		>
-			<Expand class="w-4 h-4" />
-		</button>
-	</div>
-	</div>
-</div>
 
-<!-- Settings Button (Right) -->
-<div class="fixed top-2 right-2 z-20">
-	<button
-		class="icon-btn bg-white shadow-md rounded-lg {rightPanelOpen ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-		onclick={() => rightPanelOpen = !rightPanelOpen}
-		title="Settings"
-	>
-		<Settings class="w-4 h-4" />
-	</button>
+	<!-- Center Section - All Controls -->
+	<div class="flex-1 flex justify-center" style="margin-left: {leftSidebarOpen ? '140px' : '0'}; margin-right: {rightPanelOpen ? '304px' : '0'}; transition: margin 300ms;">
+		<div class="flex items-center gap-2">
+			<!-- Mode Toggle Group -->
+			<div class="flex items-center gap-0.5 p-0.5 bg-stone-100 rounded">
+				<button
+					class="icon-btn {mode === 'select' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+					onclick={() => switchMode('select')}
+					title="Select Mode"
+				>
+					<Mouse class="w-4 h-4" />
+				</button>
+				<button
+					class="icon-btn {mode === 'edit' ? (isEditing ? 'bg-amber-500 text-white' : 'bg-blue-500 text-white') : 'text-stone-600'}"
+					onclick={() => switchMode('edit')}
+					title="{isEditing ? 'Editing Text' : 'Edit Mode'}"
+				>
+					<Edit2 class="w-4 h-4" />
+				</button>
+			</div>
+			
+			<!-- History Group -->
+			<div class="flex items-center gap-0.5 p-0.5 bg-stone-100 rounded">
+				<button
+					class="icon-btn disabled:opacity-50 disabled:cursor-not-allowed"
+					onclick={undo}
+					disabled={!canUndo}
+					title="Undo"
+				>
+					<Undo2 class="w-4 h-4" />
+				</button>
+				<button
+					class="icon-btn disabled:opacity-50 disabled:cursor-not-allowed"
+					onclick={redo}
+					disabled={!canRedo}
+					title="Redo"
+				>
+					<Redo2 class="w-4 h-4" />
+				</button>
+			</div>
+			
+			<!-- Device Preview Group -->
+			<div class="flex items-center gap-0.5 p-0.5 bg-stone-100 rounded">
+				<button
+					class="icon-btn {devicePreview === 'mobile' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+					onclick={() => devicePreview = 'mobile'}
+					title="Mobile Preview (375px)"
+				>
+					<Smartphone class="w-4 h-4" />
+				</button>
+				<button
+					class="icon-btn {devicePreview === 'tablet' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+					onclick={() => devicePreview = 'tablet'}
+					title="Tablet Preview (768px)"
+				>
+					<Tablet class="w-4 h-4" />
+				</button>
+				<button
+					class="icon-btn {devicePreview === 'desktop' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+					onclick={() => devicePreview = 'desktop'}
+					title="Desktop Preview (1280px)"
+				>
+					<Monitor class="w-4 h-4" />
+				</button>
+				<button
+					class="icon-btn {devicePreview === 'full' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+					onclick={() => devicePreview = 'full'}
+					title="Full Width"
+				>
+					<Expand class="w-4 h-4" />
+				</button>
+			</div>
+		</div>
+	</div>
+	
+	<!-- Right Section -->
+	<div class="flex items-center gap-2 absolute right-2">
+		<!-- Settings Button -->
+		<button
+			class="icon-btn {rightPanelOpen ? 'bg-stone-200' : ''}"
+			onclick={() => rightPanelOpen = !rightPanelOpen}
+			title="Settings"
+		>
+			<Settings class="w-4 h-4" />
+		</button>
+	</div>
 </div>
 
 <!-- Left Sidebar -->
@@ -498,14 +517,17 @@ onMount(() => {
 />
 
 <!-- Main Content -->
-<div class="flex h-screen">
-	<div class="flex-1 overflow-auto pt-12 {rightPanelOpen ? 'mr-80' : ''} {leftSidebarOpen ? 'ml-40' : 'ml-0'} transition-all duration-300 bg-stone-100">
+<div class="flex h-screen pt-12">
+	<div class="flex-1 overflow-auto {rightPanelOpen ? 'mr-80' : ''} {leftSidebarOpen ? 'ml-40' : 'ml-0'} transition-all duration-300 bg-stone-100">
 		<div class="flex justify-center {devicePreview === 'full' ? 'p-0' : 'p-8'}">
 			<div 
 				bind:this={contentContainer} 
 				class="relative bg-white transition-all duration-300 {devicePreview === 'full' ? 'w-full' : 'shadow-lg'} {devicePreview === 'mobile' ? 'max-w-[375px]' : devicePreview === 'tablet' ? 'max-w-[768px]' : devicePreview === 'desktop' ? 'max-w-[1280px]' : 'max-w-full'}"
 				style="width: 100%;"
 			>
+				<!-- Mock Header -->
+				<MockHeader {devicePreview} />
+				
 				<div class="p-8">
 					<!-- Templates -->
 					<div class="space-y-8">
@@ -536,6 +558,9 @@ onMount(() => {
 					</div>
 				{/if}
 					</div>
+				
+				<!-- Mock Footer -->
+				<MockFooter {devicePreview} />
 					
 					<!-- Selection Overlay - Inside content container -->
 					{#if selectedElements.size > 0 && !isEditing}

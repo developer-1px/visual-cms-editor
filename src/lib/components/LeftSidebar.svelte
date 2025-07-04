@@ -60,7 +60,7 @@
 	});
 </script>
 
-<div class="fixed left-0 top-0 bottom-0 z-10 flex">
+<div class="fixed left-0 top-12 bottom-0 z-20 flex">
 	<!-- Sidebar -->
 	<div class="bg-white border-r border-stone-200 shadow-sm transition-all duration-300 overflow-hidden {isOpen ? 'w-40' : 'w-0'}">
 		<div class="h-full flex flex-col">
@@ -132,17 +132,6 @@
 			</div>
 		</div>
 	</div>
-	
-	<!-- Toggle Button -->
-	<button
-		on:click={() => isOpen = !isOpen}
-		class="w-8 h-12 bg-white border border-l-0 border-stone-200 rounded-r-lg flex items-center justify-center hover:bg-stone-50 transition-colors mt-4"
-		title="{isOpen ? 'Hide' : 'Show'} sections"
-	>
-		<svg class="w-4 h-4 text-stone-600 transition-transform {isOpen ? '' : 'rotate-180'}" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-			<path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
-	</button>
 </div>
 
 <style>

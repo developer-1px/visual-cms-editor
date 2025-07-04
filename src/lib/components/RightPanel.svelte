@@ -17,7 +17,7 @@ $: hasHistory = !!historyInfo;
 </script>
 
 {#if isOpen}
-	<div class="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-lg overflow-y-auto z-10 animate-slide-in">
+	<div class="fixed right-0 top-12 bottom-0 w-80 bg-white shadow-lg overflow-y-auto z-10 animate-slide-in border-l border-stone-200">
 		<div class="h-full flex flex-col">
 			<!-- Header with Tabs -->
 			<div class="bg-stone-50 p-4">
