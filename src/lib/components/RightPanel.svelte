@@ -78,7 +78,7 @@ $: hasHistory = !!historyInfo;
 								</div>
 								<p class="text-sm text-stone-600">No history available</p>
 							</div>
-						{:else}
+						{:else if historyInfo}
 							<History {historyInfo} {onHistoryAction} />
 						{/if}
 					</div>

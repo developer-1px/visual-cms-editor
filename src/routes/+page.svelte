@@ -1,7 +1,6 @@
 <script lang="ts">
 import { onMount } from 'svelte';
 import { Edit2, Copy, Trash2, Type, Mouse, Undo2, Redo2, Settings, Grid3X3, Smartphone, Tablet, Monitor, Expand, Plus } from 'lucide-svelte';
-import { computePosition, flip, shift, offset } from '@floating-ui/dom';
 import { historyManager, type HistoryInfo } from '$lib/core/history';
 import RightPanel from '$lib/components/RightPanel.svelte';
 import LeftSidebar from '$lib/components/LeftSidebar.svelte';
@@ -9,19 +8,30 @@ import TemplateSelector from '$lib/components/TemplateSelector.svelte';
 import TemplateRenderer from '$lib/components/TemplateRenderer.svelte';
 import MockHeader from '$lib/components/MockHeader.svelte';
 import MockFooter from '$lib/components/MockFooter.svelte';
-import type { Template } from '$lib/core/templates/templates';
+import SelectionOverlay from '$lib/components/SelectionOverlay.svelte';
+import type { Template } from '$lib/core/templates/types';
 import { defaultTemplates } from '$lib/core/templates/templates';
+import { 
+	selectionManager,
+	selectedItems,
+	selectedElements,
+	selectedSectionIndex,
+	activeSelectionType,
+	activeSelectionStyle,
+	selectionCount,
+	isSelectionEmpty,
+	type SelectionType
+} from '$lib/core/selection/SelectionManager';
 
 type Mode = 'select' | 'edit';
 
-let selectedElements: Set<HTMLElement> = new Set();
-let overlayElement: HTMLElement;
 let mode: Mode = 'select';
 let rightPanelOpen = false;
 let leftSidebarOpen = true;
 let canUndo = false;
 let canRedo = false;
 let templateSelectorOpen = false;
+let copiedElement: HTMLElement | null = null;
 let selectedTemplates: Template[] = [
 	defaultTemplates[0], // Hero
 	defaultTemplates[2], // Features Grid
@@ -31,13 +41,14 @@ let selectedTemplates: Template[] = [
 	defaultTemplates[3]  // CTA
 ];
 let contentContainer: HTMLElement;
-let currentSectionIndex: number = 0;
+$: currentSectionIndex = $selectedSectionIndex ?? 0;
 let devicePreview: 'mobile' | 'tablet' | 'desktop' | 'full' = 'full';
 
-$: firstSelected = Array.from(selectedElements)[0];
-$: selectedType = firstSelected?.dataset.editable || '';
-$: multipleSelected = selectedElements.size > 1;
+$: firstSelected = Array.from($selectedElements)[0];
+$: selectedType = firstSelected?.dataset.editable || (firstSelected?.dataset.repeatable ? 'repeatable' : '');
+$: multipleSelected = $selectedElements.size > 1;
 $: isEditing = mode === 'edit';
+$: currentSelectionStyles = $activeSelectionStyle;
 
 let historyInfo: HistoryInfo | null = null;
 $: if (firstSelected && selectedType === 'text') {
@@ -58,6 +69,20 @@ function handleHistoryAction(action: 'undo' | 'redo') {
 function handleElementClick(e: MouseEvent) {
 	const target = e.target as HTMLElement;
 	const editable = target.closest('[data-editable]') as HTMLElement;
+	const repeatable = target.closest('[data-repeatable]') as HTMLElement;
+
+	// Handle repeatable elements first
+	if (repeatable && !editable) {
+		e.stopPropagation();
+		
+		if (e.shiftKey || e.metaKey || e.ctrlKey) {
+			toggleSelection(repeatable);
+		} else {
+			deselectAll();
+			selectElement(repeatable, false);
+		}
+		return;
+	}
 
 	if (editable) {
 		e.stopPropagation();
@@ -72,33 +97,35 @@ function handleElementClick(e: MouseEvent) {
 		if (e.shiftKey || e.metaKey || e.ctrlKey) {
 			toggleSelection(editable);
 		} else {
-			if (selectedElements.has(editable) && selectedElements.size === 1) {
+			if ($selectedElements.has(editable) && $selectedElements.size === 1) {
 				startEdit(e);
 			} else {
 				deselectAll();
-				selectElement(editable);
+				selectElement(editable, false);
 			}
 		}
 	}
 }
 
-function selectElement(element: HTMLElement) {
-	selectedElements.add(element);
+function selectElement(element: HTMLElement, multi = false) {
+	// Determine selection type
+	let type: SelectionType = 'text';
+	if (element.hasAttribute('data-repeatable')) {
+		type = 'repeatable';
+	} else if (element.dataset.editable) {
+		type = element.dataset.editable as SelectionType;
+	}
+	
+	// Use the unified selection manager
+	selectionManager.select(element, type, 'canvas', undefined, { multi });
+	
+	// Apply edit mode visual styles if needed
 	if (isEditing) {
 		element.style.outline = '3px solid #f59e0b';
 		element.style.outlineOffset = '3px';
-	} else {
-		element.style.outline = '2px solid var(--color-accent)';
-		element.style.outlineOffset = '2px';
 	}
 	
-	// Update selected elements to trigger reactivity
-	selectedElements = selectedElements;
-	
-	// Delay overlay position update to ensure DOM is ready
-	requestAnimationFrame(() => {
-		updateOverlayPosition();
-	});
+	// Overlay position is now handled by the SelectionOverlay component
 	
 	if (element.dataset.editable === 'text') {
 		const elementId = historyManager.registerElement(element, element.textContent || '');
@@ -112,32 +139,32 @@ function selectElement(element: HTMLElement) {
 }
 
 function toggleSelection(element: HTMLElement) {
-	if (selectedElements.has(element)) {
-		selectedElements.delete(element);
-		element.style.outline = '';
-		element.style.outlineOffset = '';
-	} else {
-		selectElement(element);
+	// Determine selection type
+	let type: SelectionType = 'text';
+	if (element.hasAttribute('data-repeatable')) {
+		type = 'repeatable';
+	} else if (element.dataset.editable) {
+		type = element.dataset.editable as SelectionType;
 	}
-	selectedElements = selectedElements;
+	
+	// Use the unified selection manager's toggle method
+	selectionManager.toggle(element, type, 'canvas');
+	
+	// Overlay position is now handled by the SelectionOverlay component
 }
 
 function deselectAll() {
-	selectedElements.forEach(element => {
-		element.style.outline = '';
-		element.style.outlineOffset = '';
+	// Clear visual styles from all selected elements
+	$selectedElements.forEach(element => {
 		// Remove contentEditable attribute completely
 		if (element.hasAttribute('contenteditable')) {
 			element.removeAttribute('contenteditable');
 			element.removeEventListener('input', handleTextInput);
 		}
 	});
-	selectedElements.clear();
-	selectedElements = selectedElements;
 	
-	if (overlayElement) {
-		overlayElement.style.display = 'none';
-	}
+	// Use the unified selection manager to clear
+	selectionManager.clear();
 }
 
 function switchMode(newMode: Mode) {
@@ -175,10 +202,6 @@ function startEdit(e?: MouseEvent) {
 	
 	firstSelected.addEventListener('blur', stopEdit, { once: true });
 	firstSelected.addEventListener('input', handleTextInput);
-	
-	if (overlayElement) {
-		overlayElement.style.display = 'none';
-	}
 }
 
 function stopEdit() {
@@ -222,39 +245,222 @@ function copySelected() {
 }
 
 function deleteSelected() {
-	selectedElements.forEach(element => {
+	$selectedElements.forEach(element => {
 		element.remove();
 	});
 	deselectAll();
 }
 
-function updateOverlayPosition() {
-	if (!firstSelected || !overlayElement || isEditing || !contentContainer) return;
+function copySelectedRepeatable() {
+	// Find the first selected repeatable element
+	const selectedRepeatable = Array.from($selectedElements).find(el => el.hasAttribute('data-repeatable'));
+	
+	if (selectedRepeatable) {
+		copiedElement = selectedRepeatable.cloneNode(true) as HTMLElement;
+		
+		// Visual feedback
+		selectedRepeatable.animate([
+			{ transform: 'scale(1)', opacity: 1 },
+			{ transform: 'scale(1.05)', opacity: 0.8 },
+			{ transform: 'scale(1)', opacity: 1 }
+		], {
+			duration: 300,
+			easing: 'ease-out'
+		});
+	}
+}
 
-	// Wait for overlay to be rendered
-	requestAnimationFrame(() => {
-		if (!overlayElement || !contentContainer) return;
+function cutSelectedRepeatable() {
+	// Find the first selected repeatable element
+	const selectedRepeatable = Array.from($selectedElements).find(el => el.hasAttribute('data-repeatable'));
+	
+	if (selectedRepeatable) {
+		// First copy the element
+		copiedElement = selectedRepeatable.cloneNode(true) as HTMLElement;
 		
-		// Get positions relative to the content container
-		const containerRect = contentContainer.getBoundingClientRect();
-		const elementRect = firstSelected.getBoundingClientRect();
-		
-		// Get overlay dimensions
-		const overlayHeight = overlayElement.offsetHeight || 32; // fallback height
-		
-		// Calculate position relative to content container
-		const relativeX = elementRect.left - containerRect.left;
-		let relativeY = elementRect.top - containerRect.top - overlayHeight - 8; // 8px offset above
-		
-		// If overlay would be above container, position below element
-		if (relativeY < 0) {
-			relativeY = elementRect.bottom - containerRect.top + 8;
+		// Save state for undo
+		if (contentContainer) {
+			historyManager.saveStructuralState(contentContainer);
 		}
 		
-		overlayElement.style.left = `${relativeX}px`;
-		overlayElement.style.top = `${relativeY}px`;
-		overlayElement.style.display = 'flex';
+		// Animate and delete
+		selectedRepeatable.animate([
+			{ transform: 'scale(1)', opacity: 1 },
+			{ transform: 'scale(0.95)', opacity: 0.5 }
+		], {
+			duration: 200,
+			easing: 'ease-out'
+		}).onfinish = () => {
+			selectedRepeatable.remove();
+			updateHistoryState();
+		};
+		
+		// Clear selection
+		deselectAll();
+	}
+}
+
+function hydrateNewElement(element: HTMLElement) {
+	// Add event listeners to the new element and its children
+	if (element.hasAttribute('data-repeatable')) {
+		element.addEventListener('click', handleElementClick);
+	}
+	
+	// Add event listeners to all editable elements within the new element
+	const editableElements = element.querySelectorAll('[data-editable]');
+	editableElements.forEach((editableEl) => {
+		const htmlElement = editableEl as HTMLElement;
+		htmlElement.addEventListener('click', handleElementClick);
 	});
+	
+	// Add event listeners to all repeatable elements within the new element
+	const repeatableElements = element.querySelectorAll('[data-repeatable]');
+	repeatableElements.forEach((repeatableEl) => {
+		const htmlElement = repeatableEl as HTMLElement;
+		htmlElement.addEventListener('click', handleElementClick);
+	});
+}
+
+function hydrateAllElements() {
+	if (!contentContainer) return;
+	
+	// Remove existing event listeners to avoid duplicates
+	const allClickableElements = contentContainer.querySelectorAll('[data-editable], [data-repeatable]');
+	allClickableElements.forEach((element) => {
+		const htmlElement = element as HTMLElement;
+		htmlElement.removeEventListener('click', handleElementClick);
+	});
+	
+	// Re-add event listeners to all elements
+	allClickableElements.forEach((element) => {
+		const htmlElement = element as HTMLElement;
+		htmlElement.addEventListener('click', handleElementClick);
+	});
+}
+
+function pasteRepeatable() {
+	if (!copiedElement) return;
+	
+	// Find the selected repeatable element to determine where to paste
+	const selectedRepeatable = Array.from($selectedElements).find(el => el.hasAttribute('data-repeatable'));
+	
+	if (selectedRepeatable && selectedRepeatable.parentElement) {
+		// Save state for undo
+		if (contentContainer) {
+			historyManager.saveStructuralState(contentContainer);
+		}
+		
+		// Clone the copied element
+		const newElement = copiedElement.cloneNode(true) as HTMLElement;
+		
+		// Insert after the selected element
+		selectedRepeatable.parentElement.insertBefore(newElement, selectedRepeatable.nextSibling);
+		
+		// Hydrate the new element with event listeners
+		hydrateNewElement(newElement);
+		
+		// Update history state
+		updateHistoryState();
+		
+		// Select the new element
+		deselectAll();
+		selectElement(newElement, false);
+		
+		// Animate the new element
+		newElement.animate([
+			{ transform: 'scale(0.9)', opacity: 0 },
+			{ transform: 'scale(1)', opacity: 1 }
+		], {
+			duration: 300,
+			easing: 'ease-out'
+		});
+	}
+}
+
+function deleteSelectedRepeatable() {
+	// Filter only repeatable elements
+	const repeatablesToDelete = Array.from($selectedElements).filter(el => el.hasAttribute('data-repeatable'));
+	
+	if (repeatablesToDelete.length > 0) {
+		// Save state for undo
+		if (contentContainer) {
+			historyManager.saveStructuralState(contentContainer);
+		}
+		
+		// Animate before deletion
+		repeatablesToDelete.forEach((element, index) => {
+			element.animate([
+				{ transform: 'scale(1)', opacity: 1 },
+				{ transform: 'scale(0.9)', opacity: 0 }
+			], {
+				duration: 200,
+				easing: 'ease-out'
+			}).onfinish = () => {
+				element.remove();
+				// Update history state after last element is deleted
+				if (index === repeatablesToDelete.length - 1) {
+					updateHistoryState();
+				}
+			};
+		});
+		
+		// Clear selection
+		deselectAll();
+	}
+}
+
+function handleOverlayAction(action: string, data: any) {
+	switch (action) {
+		case 'edit':
+			startEdit();
+			break;
+		case 'copy':
+			if ($activeSelectionType === 'repeatable') {
+				copySelectedRepeatable();
+			} else {
+				copySelected();
+			}
+			break;
+		case 'cut':
+			cutSelectedRepeatable();
+			break;
+		case 'delete':
+			if ($activeSelectionType === 'repeatable') {
+				deleteSelectedRepeatable();
+			} else if ($activeSelectionType === 'section') {
+				// Handle section deletion
+				const sectionIndex = $selectedSectionIndex;
+				if (sectionIndex !== null) {
+					removeTemplate(sectionIndex);
+				}
+			} else {
+				deleteSelected();
+			}
+			break;
+		case 'moveUp':
+			if ($activeSelectionType === 'section' && $selectedSectionIndex !== null && $selectedSectionIndex > 0) {
+				handleReorderSections($selectedSectionIndex, $selectedSectionIndex - 1);
+			}
+			break;
+		case 'moveDown':
+			if ($activeSelectionType === 'section' && $selectedSectionIndex !== null && $selectedSectionIndex < selectedTemplates.length - 1) {
+				handleReorderSections($selectedSectionIndex, $selectedSectionIndex + 1);
+			}
+			break;
+		case 'toggleVisibility':
+			if ($activeSelectionType === 'section' && $selectedSectionIndex !== null) {
+				handleToggleVisibility($selectedSectionIndex);
+			}
+			break;
+		case 'replace':
+			// TODO: Implement image/icon replacement
+			console.log('Replace action for', $activeSelectionType);
+			break;
+		case 'editLink':
+			// TODO: Implement link editing
+			console.log('Edit link action');
+			break;
+	}
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -274,6 +480,18 @@ function handleKeydown(e: KeyboardEvent) {
 	} else if ((e.metaKey || e.ctrlKey) && (e.key === 'Z' || (e.shiftKey && e.key === 'z'))) {
 		e.preventDefault();
 		redo();
+	} else if ((e.metaKey || e.ctrlKey) && e.key === 'c' && !isEditing) {
+		e.preventDefault();
+		copySelectedRepeatable();
+	} else if ((e.metaKey || e.ctrlKey) && e.key === 'x' && !isEditing) {
+		e.preventDefault();
+		cutSelectedRepeatable();
+	} else if ((e.metaKey || e.ctrlKey) && e.key === 'v' && !isEditing && copiedElement) {
+		e.preventDefault();
+		pasteRepeatable();
+	} else if (e.key === 'Delete' && !isEditing) {
+		e.preventDefault();
+		deleteSelectedRepeatable();
 	}
 }
 
@@ -289,12 +507,15 @@ function undo() {
 		const changedElementId = historyManager.undo();
 		updateHistoryState();
 		
+		// Re-hydrate all elements after DOM changes
+		hydrateAllElements();
+		
 		// Select the changed element
 		if (changedElementId) {
 			const element = historyManager.getElementById(changedElementId);
 			if (element) {
 				deselectAll();
-				selectElement(element);
+				selectElement(element, false);
 				// Flash effect to show what changed
 				element.animate([
 					{ backgroundColor: 'rgba(59, 130, 246, 0.3)' },
@@ -313,12 +534,15 @@ function redo() {
 		const changedElementId = historyManager.redo();
 		updateHistoryState();
 		
+		// Re-hydrate all elements after DOM changes
+		hydrateAllElements();
+		
 		// Select the changed element
 		if (changedElementId) {
 			const element = historyManager.getElementById(changedElementId);
 			if (element) {
 				deselectAll();
-				selectElement(element);
+				selectElement(element, false);
 				// Flash effect to show what changed
 				element.animate([
 					{ backgroundColor: 'rgba(59, 130, 246, 0.3)' },
@@ -347,7 +571,12 @@ function handleSelectTemplate(template: Template) {
 }
 
 function handleSelectSection(index: number) {
-	currentSectionIndex = index;
+	// Clear any canvas selections when selecting a section
+	deselectAll();
+	
+	// Use the unified selection manager for section selection
+	selectionManager.select(index, 'section', 'sidebar', selectedTemplates[index]);
+	
 	// Scroll to the selected section
 	const sectionElements = contentContainer?.querySelectorAll('.template-section');
 	if (sectionElements && sectionElements[index]) {
@@ -374,7 +603,7 @@ function handleDoubleClick(e: MouseEvent) {
 	
 	if (editable && editable.dataset.editable === 'text') {
 		e.stopPropagation();
-		if (!selectedElements.has(editable)) {
+		if (!$selectedElements.has(editable)) {
 			deselectAll();
 			selectElement(editable);
 		}
@@ -388,6 +617,13 @@ onMount(() => {
 	document.addEventListener('keydown', handleKeydown);
 	
 	updateHistoryState();
+	
+	// Wait for content container to be ready and save initial state
+	setTimeout(() => {
+		if (contentContainer) {
+			historyManager.saveStructuralState(contentContainer);
+		}
+	}, 100);
 
 	return () => {
 		// Clean up any remaining editable elements
@@ -438,6 +674,19 @@ onMount(() => {
 					<Edit2 class="w-4 h-4" />
 				</button>
 			</div>
+			
+			<!-- Selection Indicator -->
+			{#if !$isSelectionEmpty && $activeSelectionType}
+				<div class="flex items-center gap-2 px-3 py-1 text-sm {$activeSelectionType === 'repeatable' ? 'bg-green-200 text-green-800' : 'bg-stone-200 text-stone-700'} rounded">
+					<span class="font-medium">Selection:</span>
+					<span class="capitalize">
+						{$activeSelectionType}
+						{#if $selectionCount > 1}
+							({$selectionCount})
+						{/if}
+					</span>
+				</div>
+			{/if}
 			
 			<!-- History Group -->
 			<div class="flex items-center gap-0.5 p-0.5 bg-stone-100 rounded">
@@ -510,6 +759,7 @@ onMount(() => {
 <LeftSidebar 
 	bind:isOpen={leftSidebarOpen}
 	templates={selectedTemplates}
+	selectedIndex={currentSectionIndex}
 	onSelectSection={handleSelectSection}
 	onReorderSections={handleReorderSections}
 	onToggleVisibility={handleToggleVisibility}
@@ -536,8 +786,12 @@ onMount(() => {
 						<TemplateRenderer
 							{template}
 							{handleElementClick}
-							{handleTextInput}
-							{stopEdit}
+							handleTextInput={(element) => {
+								// This prop is not used in current implementation
+							}}
+							stopEdit={() => {
+								// This prop is not used in current implementation
+							}}
 						/>
 					</div>
 				{/each}
@@ -562,39 +816,11 @@ onMount(() => {
 				<!-- Mock Footer -->
 				<MockFooter {devicePreview} />
 					
-					<!-- Selection Overlay - Inside content container -->
-					{#if selectedElements.size > 0 && !isEditing}
-						<div
-							bind:this={overlayElement}
-							class="absolute bg-stone-900 shadow-xl flex items-center gap-1 px-1 py-1 z-30 animate-fade-in floating-ui"
-							style="display: none; border-radius: 8px;"
-						>
-							{#if selectedType === 'text'}
-								<button
-									class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all"
-									onclick={startEdit}
-									title="Edit"
-								>
-									<Type class="w-4 h-4" />
-								</button>
-								<div class="w-px h-5 bg-white/20"></div>
-							{/if}
-							<button
-								class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all"
-								onclick={copySelected}
-								title="Copy"
-							>
-								<Copy class="w-4 h-4" />
-							</button>
-							<button
-								class="w-8 h-8 flex items-center justify-center text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded transition-all"
-								onclick={deleteSelected}
-								title="Delete"
-							>
-								<Trash2 class="w-4 h-4" />
-							</button>
-						</div>
-					{/if}
+					<!-- Unified Selection Overlay -->
+					<SelectionOverlay 
+						container={contentContainer}
+						onAction={handleOverlayAction}
+					/>
 				</div>
 			</div>
 		</div>
@@ -627,6 +853,18 @@ onMount(() => {
 		outline: 1px solid var(--color-accent-light);
 		outline-offset: 1px;
 	}
+	
+	:global([data-repeatable]) {
+		cursor: pointer;
+		transition: all var(--transition-fast);
+		position: relative;
+	}
+	
+	:global([data-repeatable]:hover) {
+		outline: 2px dashed #22c55e;
+		outline-offset: 4px;
+		background-color: rgba(34, 197, 94, 0.05);
+	}
 
 	:global(*[contenteditable="true"]) {
 		outline: 3px solid #f59e0b !important;
@@ -653,16 +891,4 @@ onMount(() => {
 		pointer-events: none;
 	}
 	
-	/* Floating UI Arrow */
-	.floating-ui::after {
-		content: '';
-		position: absolute;
-		bottom: -6px;
-		left: 20px;
-		width: 0;
-		height: 0;
-		border-left: 6px solid transparent;
-		border-right: 6px solid transparent;
-		border-top: 6px solid #1c1917; /* stone-900 */
-	}
 </style>

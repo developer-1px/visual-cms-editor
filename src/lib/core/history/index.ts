@@ -23,6 +23,9 @@ export interface HistoryManager {
 	getElementId(element: HTMLElement): string | undefined;
 	getElementById(elementId: string): HTMLElement | undefined;
 	commitPendingChanges(elementId?: string): void;
+	// DOM structure history methods
+	saveState(): void;
+	saveStructuralState(container: HTMLElement): void;
 }
 
 interface TextHistory {
@@ -40,6 +43,12 @@ interface EditAction {
 	toText: string;
 }
 
+interface StructuralSnapshot {
+	id: string;
+	timestamp: number;
+	html: string;
+}
+
 export class LoroHistoryManager implements HistoryManager {
 	private textHistories: Map<string, TextHistory> = new Map();
 	private elementIdMap: WeakMap<HTMLElement, string> = new WeakMap();
@@ -49,6 +58,11 @@ export class LoroHistoryManager implements HistoryManager {
 	private updateDelay = 500; // 500ms delay for grouping edits
 	private editHistory: EditAction[] = []; // Global edit history
 	private editHistoryIndex: number = -1; // Current position in edit history
+	
+	// DOM structure history
+	private structuralSnapshots: StructuralSnapshot[] = [];
+	private structuralHistoryIndex: number = -1;
+	private contentContainer: HTMLElement | null = null;
 
 	constructor() {}
 
@@ -159,74 +173,94 @@ export class LoroHistoryManager implements HistoryManager {
 	}
 
 	canUndo(): boolean {
-		return this.editHistoryIndex >= 0;
+		return this.editHistoryIndex >= 0 || this.structuralHistoryIndex > 0;
 	}
 
 	canRedo(): boolean {
-		return this.editHistoryIndex < this.editHistory.length - 1;
+		return this.editHistoryIndex < this.editHistory.length - 1 || 
+			   this.structuralHistoryIndex < this.structuralSnapshots.length - 1;
 	}
 
 	undo(): string | null {
-		if (!this.canUndo()) return null;
-		
-		const action = this.editHistory[this.editHistoryIndex];
-		const history = this.textHistories.get(action.elementId);
-		
-		if (!history) return null;
-		
-		// Apply the undo
-		const currentText = history.text.toString();
-		history.text.delete(0, currentText.length);
-		history.text.insert(0, action.fromText);
-		
-		// Update the element's history index
-		history.currentIndex = history.versions.indexOf(action.fromText);
-		if (history.currentIndex === -1) {
-			// Fallback if exact text not found
-			history.currentIndex = Math.max(0, history.currentIndex - 1);
+		// Prioritize structural undo over text undo for now
+		if (this.structuralHistoryIndex > 0 && this.contentContainer) {
+			this.structuralHistoryIndex--;
+			const snapshot = this.structuralSnapshots[this.structuralHistoryIndex];
+			this.contentContainer.innerHTML = snapshot.html;
+			return 'structural-change';
 		}
 		
-		// Move the global history index back
-		this.editHistoryIndex--;
-		
-		// Notify listeners
-		const listener = this.listeners.get(action.elementId);
-		if (listener) {
-			listener(action.fromText);
+		// Fallback to text undo
+		if (this.editHistoryIndex >= 0) {
+			const action = this.editHistory[this.editHistoryIndex];
+			const history = this.textHistories.get(action.elementId);
+			
+			if (!history) return null;
+			
+			// Apply the undo
+			const currentText = history.text.toString();
+			history.text.delete(0, currentText.length);
+			history.text.insert(0, action.fromText);
+			
+			// Update the element's history index
+			history.currentIndex = history.versions.indexOf(action.fromText);
+			if (history.currentIndex === -1) {
+				history.currentIndex = Math.max(0, history.currentIndex - 1);
+			}
+			
+			// Move the global history index back
+			this.editHistoryIndex--;
+			
+			// Notify listeners
+			const listener = this.listeners.get(action.elementId);
+			if (listener) {
+				listener(action.fromText);
+			}
+			
+			return action.elementId;
 		}
 		
-		return action.elementId;
+		return null;
 	}
 
 	redo(): string | null {
-		if (!this.canRedo()) return null;
-		
-		// Move to the next action
-		this.editHistoryIndex++;
-		const action = this.editHistory[this.editHistoryIndex];
-		const history = this.textHistories.get(action.elementId);
-		
-		if (!history) return null;
-		
-		// Apply the redo
-		const currentText = history.text.toString();
-		history.text.delete(0, currentText.length);
-		history.text.insert(0, action.toText);
-		
-		// Update the element's history index
-		history.currentIndex = history.versions.indexOf(action.toText);
-		if (history.currentIndex === -1) {
-			// Fallback if exact text not found
-			history.currentIndex = Math.min(history.versions.length - 1, history.currentIndex + 1);
+		// Prioritize structural redo over text redo for now
+		if (this.structuralHistoryIndex < this.structuralSnapshots.length - 1 && this.contentContainer) {
+			this.structuralHistoryIndex++;
+			const snapshot = this.structuralSnapshots[this.structuralHistoryIndex];
+			this.contentContainer.innerHTML = snapshot.html;
+			return 'structural-change';
 		}
 		
-		// Notify listeners
-		const listener = this.listeners.get(action.elementId);
-		if (listener) {
-			listener(action.toText);
+		// Fallback to text redo
+		if (this.editHistoryIndex < this.editHistory.length - 1) {
+			this.editHistoryIndex++;
+			const action = this.editHistory[this.editHistoryIndex];
+			const history = this.textHistories.get(action.elementId);
+			
+			if (!history) return null;
+			
+			// Apply the redo
+			const currentText = history.text.toString();
+			history.text.delete(0, currentText.length);
+			history.text.insert(0, action.toText);
+			
+			// Update the element's history index
+			history.currentIndex = history.versions.indexOf(action.toText);
+			if (history.currentIndex === -1) {
+				history.currentIndex = Math.min(history.versions.length - 1, history.currentIndex + 1);
+			}
+			
+			// Notify listeners
+			const listener = this.listeners.get(action.elementId);
+			if (listener) {
+				listener(action.toText);
+			}
+			
+			return action.elementId;
 		}
 		
-		return action.elementId;
+		return null;
 	}
 
 	startTransaction(): void {
@@ -354,6 +388,35 @@ export class LoroHistoryManager implements HistoryManager {
 			currentText: history.text.toString()
 		};
 	}
+
+	// DOM structure history methods
+	saveState(): void {
+		// This is a simple implementation - we can improve it later if needed
+		console.log('saveState called - using structural history');
+	}
+
+	saveStructuralState(container: HTMLElement): void {
+		this.contentContainer = container;
+		
+		// Create a snapshot of the current DOM structure
+		const snapshot: StructuralSnapshot = {
+			id: `struct-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+			timestamp: Date.now(),
+			html: container.innerHTML
+		};
+		
+		// Remove any snapshots after current index (for redo functionality)
+		this.structuralSnapshots = this.structuralSnapshots.slice(0, this.structuralHistoryIndex + 1);
+		this.structuralSnapshots.push(snapshot);
+		this.structuralHistoryIndex = this.structuralSnapshots.length - 1;
+		
+		// Limit structural history size
+		if (this.structuralSnapshots.length > 50) {
+			this.structuralSnapshots.shift();
+			this.structuralHistoryIndex--;
+		}
+	}
+
 }
 
 export const historyManager = new LoroHistoryManager();

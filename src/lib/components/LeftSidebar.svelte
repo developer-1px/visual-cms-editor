@@ -5,6 +5,7 @@
 	
 	export let isOpen: boolean = true;
 	export let templates: Template[] = [];
+	export let selectedIndex: number | null = null;
 	export let onSelectSection: (index: number) => void = () => {};
 	export let onReorderSections: (fromIndex: number, toIndex: number) => void = () => {};
 	export let onToggleVisibility: (index: number) => void = () => {};
@@ -84,7 +85,7 @@
 			<div class="flex-1 overflow-y-auto p-1.5 space-y-1">
 				{#each templates as template, index (template.id + index)}
 					<div
-						class="group relative bg-stone-50 border border-stone-200 rounded overflow-hidden transition-all hover:border-stone-300 hover:shadow-sm cursor-pointer {dragOverIndex === index ? 'border-blue-500' : ''}"
+						class="group relative bg-stone-50 border rounded overflow-hidden transition-all hover:shadow-sm cursor-pointer {dragOverIndex === index ? 'border-blue-500' : selectedIndex === index ? 'border-2 border-indigo-500 bg-indigo-50' : 'border-stone-200 hover:border-stone-300'}"
 						on:click={() => onSelectSection(index)}
 						draggable={true}
 						on:dragstart={(e) => handleDragStart(e, index)}

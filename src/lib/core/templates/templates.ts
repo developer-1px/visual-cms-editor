@@ -96,20 +96,20 @@ export const defaultTemplates: Template[] = [
 						<p class="text-stone-600">Everything you need to get started</p>
 					</div>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-12">
-						<div class="text-center">
+						<div class="text-center" data-repeatable="feature">
 							<div class="w-12 h-12 bg-stone-900 mx-auto mb-6"></div>
-							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3">Fast</h3>
-							<p class="feature-description text-stone-600">Built for speed and performance</p>
+							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Fast</h3>
+							<p class="feature-description text-stone-600" data-editable="text">Built for speed and performance</p>
 						</div>
-						<div class="text-center">
+						<div class="text-center" data-repeatable="feature">
 							<div class="w-12 h-12 bg-stone-900 mx-auto mb-6"></div>
-							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3">Secure</h3>
-							<p class="feature-description text-stone-600">Enterprise-grade security</p>
+							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Secure</h3>
+							<p class="feature-description text-stone-600" data-editable="text">Enterprise-grade security</p>
 						</div>
-						<div class="text-center">
+						<div class="text-center" data-repeatable="feature">
 							<div class="w-12 h-12 bg-stone-900 mx-auto mb-6"></div>
-							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3">Simple</h3>
-							<p class="feature-description text-stone-600">Easy to use and understand</p>
+							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Simple</h3>
+							<p class="feature-description text-stone-600" data-editable="text">Easy to use and understand</p>
 						</div>
 					</div>
 				</div>

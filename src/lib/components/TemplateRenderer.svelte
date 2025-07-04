@@ -58,6 +58,15 @@
 			// 텍스트 편집 관련 이벤트는 +page.svelte에서 처리
 			// blur와 input 이벤트는 편집 모드 시작 시 동적으로 추가됨
 		});
+		
+		// 모든 repeatable 요소에도 이벤트 리스너 추가
+		const repeatableElements = templateContainer.querySelectorAll('[data-repeatable]');
+		repeatableElements.forEach((element) => {
+			const htmlElement = element as HTMLElement;
+			
+			// 클릭 이벤트
+			htmlElement.addEventListener('click', handleElementClick);
+		});
 	}
 	
 	// 이벤트 리스너 정리
@@ -66,6 +75,13 @@
 		
 		const editableElements = templateContainer.querySelectorAll('[data-editable]');
 		editableElements.forEach((element) => {
+			const htmlElement = element as HTMLElement;
+			
+			htmlElement.removeEventListener('click', handleElementClick);
+		});
+		
+		const repeatableElements = templateContainer.querySelectorAll('[data-repeatable]');
+		repeatableElements.forEach((element) => {
 			const htmlElement = element as HTMLElement;
 			
 			htmlElement.removeEventListener('click', handleElementClick);
@@ -107,8 +123,28 @@
 		transition: all 0.2s ease;
 	}
 	
+	/* editable 요소는 repeatable 요소 밖에서만 hover 효과 표시 */
 	:global(.template-content [data-editable]:hover) {
 		outline: 2px dashed #3b82f6;
 		outline-offset: 4px;
+	}
+	
+	/* repeatable 요소 안에 있는 editable 요소는 hover 효과 없음 */
+	:global(.template-content [data-repeatable] [data-editable]:hover) {
+		outline: none;
+		outline-offset: 0;
+	}
+	
+	/* 반복 가능한 요소 스타일 */
+	:global(.template-content [data-repeatable]) {
+		position: relative;
+		transition: all 0.2s ease;
+		cursor: pointer;
+	}
+	
+	:global(.template-content [data-repeatable]:hover) {
+		outline: 2px dashed #10b981;
+		outline-offset: 4px;
+		background-color: rgba(16, 185, 129, 0.05);
 	}
 </style>
