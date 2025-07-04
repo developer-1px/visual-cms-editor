@@ -1,9 +1,10 @@
 <script lang="ts">
 import { onMount } from 'svelte';
-import { Edit2, Copy, Trash2, Type, Mouse, PenTool, Undo2, Redo2, Plus, Settings, Target, Grid3X3 } from 'lucide-svelte';
+import { Edit2, Copy, Trash2, Type, Mouse, Undo2, Redo2, Settings, Grid3X3, Smartphone, Tablet, Monitor, Expand } from 'lucide-svelte';
 import { computePosition, flip, shift, offset } from '@floating-ui/dom';
 import { historyManager, type HistoryInfo } from '$lib/core/history';
 import RightPanel from '$lib/components/RightPanel.svelte';
+import LeftSidebar from '$lib/components/LeftSidebar.svelte';
 import TemplateSelector from '$lib/components/TemplateSelector.svelte';
 import TemplateRenderer from '$lib/components/TemplateRenderer.svelte';
 import type { Template } from '$lib/core/templates/templates';
@@ -15,6 +16,7 @@ let selectedElements: Set<HTMLElement> = new Set();
 let overlayElement: HTMLElement;
 let mode: Mode = 'select';
 let rightPanelOpen = false;
+let leftSidebarOpen = true;
 let canUndo = false;
 let canRedo = false;
 let templateSelectorOpen = false;
@@ -27,6 +29,8 @@ let selectedTemplates: Template[] = [
 	defaultTemplates[3]  // CTA
 ];
 let contentContainer: HTMLElement;
+let currentSectionIndex: number = 0;
+let devicePreview: 'mobile' | 'tablet' | 'desktop' | 'full' = 'full';
 
 $: firstSelected = Array.from(selectedElements)[0];
 $: selectedType = firstSelected?.dataset.editable || '';
@@ -340,6 +344,28 @@ function handleSelectTemplate(template: Template) {
 	templateSelectorOpen = false;
 }
 
+function handleSelectSection(index: number) {
+	currentSectionIndex = index;
+	// Scroll to the selected section
+	const sectionElements = contentContainer?.querySelectorAll('.template-section');
+	if (sectionElements && sectionElements[index]) {
+		sectionElements[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
+	}
+}
+
+function handleReorderSections(fromIndex: number, toIndex: number) {
+	const newTemplates = [...selectedTemplates];
+	const [removed] = newTemplates.splice(fromIndex, 1);
+	newTemplates.splice(toIndex, 0, removed);
+	selectedTemplates = newTemplates;
+}
+
+function handleToggleVisibility(index: number) {
+	// This could be implemented to hide/show sections
+	// For now, we'll just log it
+	console.log('Toggle visibility for section', index);
+}
+
 function handleDoubleClick(e: MouseEvent) {
 	const target = e.target as HTMLElement;
 	const editable = target.closest('[data-editable]') as HTMLElement;
@@ -374,10 +400,12 @@ onMount(() => {
 });
 </script>
 
-<!-- Minimal Toolbar -->
-<div class="fixed top-2 left-2 z-20 flex items-center gap-1 bg-white shadow-md">
-	<!-- Mode Toggle -->
-	<div class="flex">
+<!-- Center Toolbar Wrapper -->
+<div class="fixed top-2 z-20 flex justify-center" style="left: {leftSidebarOpen ? '160px' : '0'}; right: {rightPanelOpen ? '320px' : '0'};">
+	<!-- Center Toolbar -->
+	<div class="flex items-center gap-3">
+	<!-- Mode Toggle Group -->
+	<div class="flex items-center gap-1 p-1 bg-white shadow-md rounded-lg">
 		<button
 			class="icon-btn {mode === 'select' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
 			onclick={() => switchMode('select')}
@@ -394,10 +422,8 @@ onMount(() => {
 		</button>
 	</div>
 	
-	<div class="w-px h-8 bg-stone-100"></div>
-	
-	<!-- History -->
-	<div class="flex">
+	<!-- History Group -->
+	<div class="flex items-center gap-1 p-1 bg-white shadow-md rounded-lg">
 		<button
 			class="icon-btn disabled:opacity-50 disabled:cursor-not-allowed"
 			onclick={undo}
@@ -416,35 +442,75 @@ onMount(() => {
 		</button>
 	</div>
 	
-	<div class="w-px h-8 bg-stone-100"></div>
-	
-	<!-- Tools -->
-	<div class="flex">
+	<!-- Device Preview Group -->
+	<div class="flex items-center gap-1 p-1 bg-white shadow-md rounded-lg">
 		<button
-			class="icon-btn"
-			onclick={() => templateSelectorOpen = true}
-			title="Add Template"
+			class="icon-btn {devicePreview === 'mobile' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+			onclick={() => devicePreview = 'mobile'}
+			title="Mobile Preview (375px)"
 		>
-			<Plus class="w-4 h-4" />
+			<Smartphone class="w-4 h-4" />
 		</button>
 		<button
-			class="icon-btn {rightPanelOpen ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-			onclick={() => rightPanelOpen = !rightPanelOpen}
-			title="Panel"
+			class="icon-btn {devicePreview === 'tablet' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+			onclick={() => devicePreview = 'tablet'}
+			title="Tablet Preview (768px)"
 		>
-			<Settings class="w-4 h-4" />
+			<Tablet class="w-4 h-4" />
 		</button>
+		<button
+			class="icon-btn {devicePreview === 'desktop' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+			onclick={() => devicePreview = 'desktop'}
+			title="Desktop Preview (1280px)"
+		>
+			<Monitor class="w-4 h-4" />
+		</button>
+		<button
+			class="icon-btn {devicePreview === 'full' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+			onclick={() => devicePreview = 'full'}
+			title="Full Width"
+		>
+			<Expand class="w-4 h-4" />
+		</button>
+	</div>
 	</div>
 </div>
 
+<!-- Settings Button (Right) -->
+<div class="fixed top-2 right-2 z-20">
+	<button
+		class="icon-btn bg-white shadow-md rounded-lg {rightPanelOpen ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+		onclick={() => rightPanelOpen = !rightPanelOpen}
+		title="Settings"
+	>
+		<Settings class="w-4 h-4" />
+	</button>
+</div>
+
+<!-- Left Sidebar -->
+<LeftSidebar 
+	bind:isOpen={leftSidebarOpen}
+	templates={selectedTemplates}
+	onSelectSection={handleSelectSection}
+	onReorderSections={handleReorderSections}
+	onToggleVisibility={handleToggleVisibility}
+	onAddSection={() => templateSelectorOpen = true}
+/>
+
 <!-- Main Content -->
 <div class="flex h-screen">
-	<div class="flex-1 overflow-auto pt-16 {rightPanelOpen ? 'mr-80' : ''}">
-		<div bind:this={contentContainer} class="p-8 relative">
-			<!-- Templates -->
-			<div class="space-y-8">
+	<div class="flex-1 overflow-auto pt-12 {rightPanelOpen ? 'mr-80' : ''} {leftSidebarOpen ? 'ml-40' : 'ml-0'} transition-all duration-300 bg-stone-100">
+		<div class="flex justify-center {devicePreview === 'full' ? 'p-0' : 'p-8'}">
+			<div 
+				bind:this={contentContainer} 
+				class="relative bg-white transition-all duration-300 {devicePreview === 'full' ? 'w-full' : 'shadow-lg'} {devicePreview === 'mobile' ? 'max-w-[375px]' : devicePreview === 'tablet' ? 'max-w-[768px]' : devicePreview === 'desktop' ? 'max-w-[1280px]' : 'max-w-full'}"
+				style="width: 100%;"
+			>
+				<div class="p-8">
+					<!-- Templates -->
+					<div class="space-y-8">
 				{#each selectedTemplates as template, index (template.id + index)}
-					<div class="animate-fade-in" style="animation-delay: {index * 0.1}s">
+					<div class="template-section animate-fade-in {currentSectionIndex === index ? 'ring-2 ring-blue-500 ring-offset-4' : ''}" style="animation-delay: {index * 0.1}s">
 						<TemplateRenderer
 							{template}
 							{handleElementClick}
@@ -469,41 +535,43 @@ onMount(() => {
 						</button>
 					</div>
 				{/if}
-			</div>
-			
-			<!-- Selection Overlay - Inside content container -->
-			{#if selectedElements.size > 0 && !isEditing}
-				<div
-					bind:this={overlayElement}
-					class="absolute bg-stone-900 shadow-xl flex items-center gap-1 px-1 py-1 z-30 animate-fade-in floating-ui"
-					style="display: none; border-radius: 8px;"
-				>
-					{#if selectedType === 'text'}
-						<button
-							class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all"
-							onclick={startEdit}
-							title="Edit"
+					</div>
+					
+					<!-- Selection Overlay - Inside content container -->
+					{#if selectedElements.size > 0 && !isEditing}
+						<div
+							bind:this={overlayElement}
+							class="absolute bg-stone-900 shadow-xl flex items-center gap-1 px-1 py-1 z-30 animate-fade-in floating-ui"
+							style="display: none; border-radius: 8px;"
 						>
-							<Type class="w-4 h-4" />
-						</button>
-						<div class="w-px h-5 bg-white/20"></div>
+							{#if selectedType === 'text'}
+								<button
+									class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all"
+									onclick={startEdit}
+									title="Edit"
+								>
+									<Type class="w-4 h-4" />
+								</button>
+								<div class="w-px h-5 bg-white/20"></div>
+							{/if}
+							<button
+								class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all"
+								onclick={copySelected}
+								title="Copy"
+							>
+								<Copy class="w-4 h-4" />
+							</button>
+							<button
+								class="w-8 h-8 flex items-center justify-center text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded transition-all"
+								onclick={deleteSelected}
+								title="Delete"
+							>
+								<Trash2 class="w-4 h-4" />
+							</button>
+						</div>
 					{/if}
-					<button
-						class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all"
-						onclick={copySelected}
-						title="Copy"
-					>
-						<Copy class="w-4 h-4" />
-					</button>
-					<button
-						class="w-8 h-8 flex items-center justify-center text-red-400 hover:bg-red-500/20 hover:text-red-300 rounded transition-all"
-						onclick={deleteSelected}
-						title="Delete"
-					>
-						<Trash2 class="w-4 h-4" />
-					</button>
 				</div>
-			{/if}
+			</div>
 		</div>
 	</div>
 </div>
