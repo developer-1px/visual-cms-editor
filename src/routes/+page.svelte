@@ -22,6 +22,7 @@ import {
 	isSelectionEmpty,
 	type SelectionType
 } from '$lib/core/selection/SelectionManager';
+import { editablePluginManager } from '$lib/core/plugins/editable';
 
 type Mode = 'select' | 'edit';
 
@@ -86,6 +87,9 @@ function handleElementClick(e: MouseEvent) {
 	if (editable) {
 		e.stopPropagation();
 
+		// Use plugin system for handling clicks
+		editablePluginManager.handleClick(editable, e);
+
 		if (isEditing) {
 			if (editable.dataset.editable === 'text' && editable !== firstSelected) {
 				switchEditTarget(editable, e);
@@ -97,7 +101,12 @@ function handleElementClick(e: MouseEvent) {
 			toggleSelection(editable);
 		} else {
 			if ($selectedElements.has(editable) && $selectedElements.size === 1) {
-				startEdit(e);
+				// For text elements, start edit mode
+				if (editable.dataset.editable === 'text') {
+					startEdit(e);
+				}
+				// For other elements (image, icon, etc.), the plugin has already handled the click
+				// No additional action needed here as the plugin's onClick was called above
 			} else {
 				deselectAll();
 				selectElement(editable, false);
@@ -118,6 +127,12 @@ function selectElement(element: HTMLElement, multi = false) {
 	// Use the unified selection manager
 	selectionManager.select(element, type, 'canvas', undefined, { multi });
 	
+	// Initialize element with plugin system if it's editable
+	if (element.dataset.editable) {
+		editablePluginManager.initElement(element);
+		editablePluginManager.applyStyles(element, true);
+	}
+	
 	// Apply edit mode visual styles if needed
 	if (isEditing) {
 		element.style.outline = '3px solid #f59e0b';
@@ -126,6 +141,7 @@ function selectElement(element: HTMLElement, multi = false) {
 	
 	// Overlay position is now handled by the SelectionOverlay component
 	
+	// Register element for history tracking based on type
 	if (element.dataset.editable === 'text') {
 		const elementId = historyManager.registerElement(element, element.textContent || '');
 		historyManager.onTextChange(elementId, (newText) => {
@@ -134,6 +150,15 @@ function selectElement(element: HTMLElement, multi = false) {
 			}
 		});
 		updateHistoryState();
+	} else if (element.dataset.editable === 'image') {
+		// Register image changes for history
+		element.addEventListener('imageChanged', (e) => {
+			const customEvent = e as CustomEvent;
+			if (contentContainer) {
+				historyManager.saveStructuralState(contentContainer);
+				updateHistoryState();
+			}
+		});
 	}
 }
 
@@ -159,6 +184,11 @@ function deselectAll() {
 		if (element.hasAttribute('contenteditable')) {
 			element.removeAttribute('contenteditable');
 			element.removeEventListener('input', handleTextInput);
+		}
+		
+		// Remove plugin styles if it's an editable element
+		if (element.dataset.editable) {
+			editablePluginManager.removeStyles(element);
 		}
 	});
 	
@@ -463,6 +493,7 @@ function handleOverlayAction(action: string, data: any) {
 }
 
 function handleKeydown(e: KeyboardEvent) {
+	console.log('Key pressed:', e.key, { isEditing, firstSelected, selectedType });
 	if (e.key === 'Escape') {
 		if (isEditing) {
 			stopEdit();
@@ -481,16 +512,62 @@ function handleKeydown(e: KeyboardEvent) {
 		redo();
 	} else if ((e.metaKey || e.ctrlKey) && e.key === 'c' && !isEditing) {
 		e.preventDefault();
-		copySelectedRepeatable();
+		handleCopyShortcut();
 	} else if ((e.metaKey || e.ctrlKey) && e.key === 'x' && !isEditing) {
 		e.preventDefault();
-		cutSelectedRepeatable();
-	} else if ((e.metaKey || e.ctrlKey) && e.key === 'v' && !isEditing && copiedElement) {
+		handleCutShortcut();
+	} else if ((e.metaKey || e.ctrlKey) && e.key === 'v' && !isEditing) {
 		e.preventDefault();
-		pasteRepeatable();
-	} else if (e.key === 'Delete' && !isEditing) {
+		handlePasteShortcut();
+	} else if ((e.key === 'Delete' || e.key === 'Backspace') && !isEditing) {
 		e.preventDefault();
-		deleteSelectedRepeatable();
+		handleDeleteShortcut();
+	}
+}
+
+function handleCopyShortcut() {
+	if (firstSelected) {
+		if (selectedType === 'image') {
+			editablePluginManager.handleAction(firstSelected, 'copy');
+		} else if (selectedType === 'repeatable') {
+			copySelectedRepeatable();
+		} else {
+			copySelected();
+		}
+	}
+}
+
+function handleCutShortcut() {
+	if (firstSelected) {
+		if (selectedType === 'image') {
+			editablePluginManager.handleAction(firstSelected, 'cut');
+		} else if (selectedType === 'repeatable') {
+			cutSelectedRepeatable();
+		}
+	}
+}
+
+function handlePasteShortcut() {
+	if (firstSelected) {
+		if (selectedType === 'image') {
+			editablePluginManager.handleAction(firstSelected, 'paste');
+		} else if (selectedType === 'repeatable' && copiedElement) {
+			pasteRepeatable();
+		}
+	}
+}
+
+function handleDeleteShortcut() {
+	console.log('Delete shortcut triggered', { firstSelected, selectedType, isEditing });
+	if (firstSelected) {
+		if (selectedType === 'image') {
+			console.log('Deleting image element');
+			editablePluginManager.handleAction(firstSelected, 'delete');
+		} else if (selectedType === 'repeatable') {
+			deleteSelectedRepeatable();
+		} else {
+			deleteSelected();
+		}
 	}
 }
 
@@ -601,13 +678,22 @@ function handleDoubleClick(e: MouseEvent) {
 	const target = e.target as HTMLElement;
 	const editable = target.closest('[data-editable]') as HTMLElement;
 	
-	if (editable && editable.dataset.editable === 'text') {
+	if (editable) {
 		e.stopPropagation();
+		
+		// Use plugin system for handling double clicks
+		editablePluginManager.handleDoubleClick(editable, e);
+		
+		// Select element if not already selected
 		if (!$selectedElements.has(editable)) {
 			deselectAll();
 			selectElement(editable);
 		}
-		startEdit(e);
+		
+		// Only start edit mode for text elements
+		if (editable.dataset.editable === 'text') {
+			startEdit(e);
+		}
 	}
 }
 

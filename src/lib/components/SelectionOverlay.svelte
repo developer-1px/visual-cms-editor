@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { computePosition, flip, shift, offset } from '@floating-ui/dom';
-	import { Edit2, Copy, Trash2, Type, Scissors, Eye, EyeOff, ChevronUp, ChevronDown } from 'lucide-svelte';
+	import { Edit2, Copy, Trash2, Type, Scissors, Eye, EyeOff, ChevronUp, ChevronDown, Upload, RotateCw, Settings } from 'lucide-svelte';
 	import { 
 		selectedItems,
 		selectedElements,
@@ -11,6 +11,7 @@
 		isSelectionEmpty,
 		selectionManager
 	} from '$lib/core/selection/SelectionManager';
+	import { editablePluginManager } from '$lib/core/plugins/editable';
 	
 	export let container: HTMLElement | null = null;
 	export let onAction: (action: string, data?: any) => void = () => {};
@@ -26,6 +27,21 @@
 	function getActionsForType(type: string | null) {
 		if (!type) return [];
 		
+		// Get plugin-specific actions if available
+		const firstElement = Array.from($selectedElements)[0];
+		if (firstElement && firstElement.dataset.editable) {
+			const pluginActions = editablePluginManager.getActions(firstElement);
+			if (pluginActions.length > 0) {
+				return pluginActions.map(action => ({
+					id: action.id,
+					icon: getIconForAction(action.icon || action.id),
+					title: action.label,
+					color: action.isDestructive ? 'text-red-400' : undefined,
+					handler: action.handler
+				}));
+			}
+		}
+		
 		const commonActions = [
 			{ id: 'copy', icon: Copy, title: 'Copy', shortcut: 'Ctrl+C' },
 			{ id: 'delete', icon: Trash2, title: 'Delete', shortcut: 'Delete', color: 'text-red-400' }
@@ -36,6 +52,18 @@
 				return [
 					{ id: 'edit', icon: Type, title: 'Edit', shortcut: 'Enter' },
 					...commonActions
+				];
+			case 'image':
+				return [
+					{ id: 'upload', icon: Upload, title: 'Upload Image' },
+					{ id: 'replace', icon: RotateCw, title: 'Replace Image' },
+					{ id: 'delete', icon: Trash2, title: 'Remove Image', color: 'text-red-400' }
+				];
+			case 'icon':
+				return [
+					{ id: 'change-icon', icon: Edit2, title: 'Change Icon' },
+					{ id: 'customize', icon: Settings, title: 'Customize' },
+					{ id: 'remove', icon: Trash2, title: 'Remove Icon', color: 'text-red-400' }
 				];
 			case 'repeatable':
 				return [
@@ -49,12 +77,6 @@
 					{ id: 'toggleVisibility', icon: Eye, title: 'Toggle Visibility' },
 					{ id: 'delete', icon: Trash2, title: 'Remove Section', color: 'text-red-400' }
 				];
-			case 'image':
-			case 'icon':
-				return [
-					{ id: 'replace', icon: Edit2, title: 'Replace' },
-					...commonActions
-				];
 			case 'link':
 				return [
 					{ id: 'editLink', icon: Edit2, title: 'Edit Link' },
@@ -65,8 +87,21 @@
 		}
 	}
 	
+	function getIconForAction(iconName: string) {
+		const iconMap: Record<string, any> = {
+			'edit': Edit2,
+			'upload': Upload,
+			'refresh': RotateCw,
+			'settings': Settings,
+			'trash': Trash2,
+			'copy': Copy,
+			'cut': Scissors
+		};
+		return iconMap[iconName] || Edit2;
+	}
+	
 	async function updatePosition() {
-		if ($isSelectionEmpty || !container) {
+		if ($isSelectionEmpty || !container || !overlayElement) {
 			visible = false;
 			return;
 		}
@@ -83,8 +118,8 @@
 		if (firstItem.context === 'sidebar' && typeof firstItem.element === 'number') {
 			// For section selections, position near the section in sidebar
 			const sectionElements = document.querySelectorAll('.template-section');
-			const sectionElement = sectionElements[firstItem.element];
-			if (!sectionElement) {
+			const sectionElement = sectionElements[firstItem.element] as HTMLElement;
+			if (!sectionElement || !(sectionElement instanceof HTMLElement)) {
 				visible = false;
 				return;
 			}
@@ -142,7 +177,14 @@
 		visible = true;
 	}
 	
-	function handleAction(actionId: string) {
+	function handleAction(actionId: string, customHandler?: Function) {
+		// If there's a custom handler (from plugin), use it
+		if (customHandler) {
+			customHandler();
+			return;
+		}
+		
+		// Otherwise, use the default action handler
 		onAction(actionId, { 
 			selection: $selectedItems,
 			type: $activeSelectionType
@@ -151,7 +193,12 @@
 	
 	// Update position when selection changes
 	$: if ($selectedItems.size > 0) {
-		requestAnimationFrame(updatePosition);
+		// Add a small delay to ensure overlayElement is bound
+		setTimeout(() => {
+			if (overlayElement) {
+				updatePosition();
+			}
+		}, 10);
 	} else {
 		visible = false;
 	}
@@ -184,7 +231,7 @@
 			{:else}
 				<button
 					class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all {action.color || ''}"
-					on:click={() => handleAction(action.id)}
+					on:click={() => handleAction(action.id, action.handler)}
 					title="{action.title}{action.shortcut ? ` (${action.shortcut})` : ''}"
 				>
 					<svelte:component this={action.icon} class="w-4 h-4" />
