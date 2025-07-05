@@ -67,31 +67,31 @@ Visual CMS Editor는 **디자인과 컨텐츠를 완전히 분리**한 차세대
 ```typescript
 // 디자인 스키마 (Design Schema) - 불변
 interface DesignSchema {
-	id: string;
-	version: string;
-	components: ComponentTree; // 컴포넌트 계층 구조
-	styles: StyleDefinitions; // 스타일 정의
-	editableZones: EditableZone[]; // 편집 가능 영역
-	constraints: Constraints; // 편집 제약사항
+  id: string
+  version: string
+  components: ComponentTree // 컴포넌트 계층 구조
+  styles: StyleDefinitions // 스타일 정의
+  editableZones: EditableZone[] // 편집 가능 영역
+  constraints: Constraints // 편집 제약사항
 }
 
 // 컨텐츠 데이터 (Content Data) - Loro로 관리
 interface ContentData {
-	texts: LoroText; // 텍스트 컨텐츠
-	media: LoroMap; // 이미지, 비디오 등
-	lists: LoroList; // 반복 가능한 항목
-	metadata: LoroMap; // SEO, 설정 등
+  texts: LoroText // 텍스트 컨텐츠
+  media: LoroMap // 이미지, 비디오 등
+  lists: LoroList // 반복 가능한 항목
+  metadata: LoroMap // SEO, 설정 등
 }
 
 // 편집 가능 영역 정의
 interface EditableZone {
-	id: string;
-	type: 'text' | 'image' | 'list' | 'custom';
-	constraints?: {
-		maxLength?: number;
-		allowedFormats?: string[];
-		validation?: ValidationRule[];
-	};
+  id: string
+  type: "text" | "image" | "list" | "custom"
+  constraints?: {
+    maxLength?: number
+    allowedFormats?: string[]
+    validation?: ValidationRule[]
+  }
 }
 ```
 
@@ -132,28 +132,28 @@ interface EditableZone {
 ### 4.1 초기화
 
 ```typescript
-import { createVisualCMS } from '@visual-cms/core';
-import { LoroDoc } from 'loro-crdt';
+import { createVisualCMS } from "@visual-cms/core"
+import { LoroDoc } from "loro-crdt"
 
 const cms = createVisualCMS({
-	// Loro 문서 인스턴스
-	loro: new LoroDoc(),
+  // Loro 문서 인스턴스
+  loro: new LoroDoc(),
 
-	// 사용 모드
-	mode: 'design' | 'content',
+  // 사용 모드
+  mode: "design" | "content",
 
-	// 컴포넌트 레지스트리
-	components: [HeroComponent, CardComponent, AccordionComponent],
+  // 컴포넌트 레지스트리
+  components: [HeroComponent, CardComponent, AccordionComponent],
 
-	// 스토리지 어댑터
-	storage: {
-		adapter: 'api',
-		endpoint: 'https://api.example.com/cms'
-	},
+  // 스토리지 어댑터
+  storage: {
+    adapter: "api",
+    endpoint: "https://api.example.com/cms",
+  },
 
-	// 플러그인
-	plugins: [validationPlugin, mediaPlugin, seoPlugin]
-});
+  // 플러그인
+  plugins: [validationPlugin, mediaPlugin, seoPlugin],
+})
 ```
 
 ### 4.2 디자인 모드 API
@@ -161,48 +161,48 @@ const cms = createVisualCMS({
 ```typescript
 // 컴포넌트 추가
 cms.design.addComponent({
-	type: 'hero',
-	props: { title: '', subtitle: '' },
-	editableZones: ['title', 'subtitle']
-});
+  type: "hero",
+  props: { title: "", subtitle: "" },
+  editableZones: ["title", "subtitle"],
+})
 
 // 레이아웃 설정
 cms.design.setLayout({
-	grid: { columns: 12, gap: 20 },
-	breakpoints: {
-		mobile: 768,
-		tablet: 1024,
-		desktop: 1440
-	}
-});
+  grid: { columns: 12, gap: 20 },
+  breakpoints: {
+    mobile: 768,
+    tablet: 1024,
+    desktop: 1440,
+  },
+})
 
 // 편집 영역 정의
-cms.design.defineEditableZone('hero-title', {
-	type: 'text',
-	constraints: {
-		maxLength: 100,
-		allowedTags: ['strong', 'em']
-	}
-});
+cms.design.defineEditableZone("hero-title", {
+  type: "text",
+  constraints: {
+    maxLength: 100,
+    allowedTags: ["strong", "em"],
+  },
+})
 ```
 
 ### 4.3 컨텐츠 모드 API
 
 ```typescript
 // 텍스트 편집
-cms.content.updateText('hero-title', 'Welcome to Our Service');
+cms.content.updateText("hero-title", "Welcome to Our Service")
 
 // 이미지 변경
-cms.content.updateMedia('hero-image', {
-	src: '/images/hero-new.jpg',
-	alt: 'Hero Image'
-});
+cms.content.updateMedia("hero-image", {
+  src: "/images/hero-new.jpg",
+  alt: "Hero Image",
+})
 
 // 리스트 항목 추가
-cms.content.addListItem('features', {
-	title: 'New Feature',
-	description: 'Feature description'
-});
+cms.content.addListItem("features", {
+  title: "New Feature",
+  description: "Feature description",
+})
 ```
 
 ### 4.4 동기화 및 협업
@@ -210,18 +210,18 @@ cms.content.addListItem('features', {
 ```typescript
 // 실시간 동기화 시작
 cms.sync.connect({
-	url: 'wss://sync.example.com',
-	room: 'project-123'
-});
+  url: "wss://sync.example.com",
+  room: "project-123",
+})
 
 // 변경사항 구독
-cms.on('change', (changes) => {
-	console.log('Content updated:', changes);
-});
+cms.on("change", (changes) => {
+  console.log("Content updated:", changes)
+})
 
 // 히스토리 접근
-const history = await cms.getHistory();
-cms.revertTo(history[0].version);
+const history = await cms.getHistory()
+cms.revertTo(history[0].version)
 ```
 
 ## 5. 기술 스택

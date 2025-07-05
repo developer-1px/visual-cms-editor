@@ -137,7 +137,6 @@ export class Selection implements SelectionManager {
 
   private navigateDirection(direction: string): void {
     // 간단한 구현 - 나중에 공간적 네비게이션으로 개선
-    const isVertical = direction === "ArrowUp" || direction === "ArrowDown"
     const isBackward = direction === "ArrowUp" || direction === "ArrowLeft"
     this.navigateNext(isBackward)
   }

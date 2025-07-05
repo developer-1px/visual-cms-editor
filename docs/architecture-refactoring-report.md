@@ -7,15 +7,15 @@
 ```typescript
 // 현재 구조 - 분기가 많고 응집도가 낮음
 function handleCopyShortcut() {
-	if (firstSelected) {
-		if (selectedType === 'image') {
-			editablePluginManager.handleAction(firstSelected, 'copy');
-		} else if (selectedType === 'repeatable') {
-			copySelectedRepeatable();
-		} else {
-			copySelected();
-		}
-	}
+  if (firstSelected) {
+    if (selectedType === "image") {
+      editablePluginManager.handleAction(firstSelected, "copy")
+    } else if (selectedType === "repeatable") {
+      copySelectedRepeatable()
+    } else {
+      copySelected()
+    }
+  }
 }
 ```
 
@@ -45,16 +45,16 @@ function handleCopyShortcut() {
 
 ```typescript
 interface ActionHandler {
-	canHandle(element: HTMLElement, selectionType: string): boolean;
-	copy(element: HTMLElement): Promise<void>;
-	cut(element: HTMLElement): Promise<void>;
-	paste(element: HTMLElement): Promise<void>;
-	delete(element: HTMLElement): Promise<void>;
+  canHandle(element: HTMLElement, selectionType: string): boolean
+  copy(element: HTMLElement): Promise<void>
+  cut(element: HTMLElement): Promise<void>
+  paste(element: HTMLElement): Promise<void>
+  delete(element: HTMLElement): Promise<void>
 }
 
 interface SelectionActionManager {
-	registerHandler(handler: ActionHandler): void;
-	executeAction(action: string, selection: Selection): Promise<void>;
+  registerHandler(handler: ActionHandler): void
+  executeAction(action: string, selection: Selection): Promise<void>
 }
 ```
 
@@ -63,45 +63,45 @@ interface SelectionActionManager {
 ```typescript
 // 이미지 액션 핸들러
 class ImageActionHandler implements ActionHandler {
-	canHandle(element: HTMLElement, selectionType: string): boolean {
-		return selectionType === 'image' && element.dataset.editable === 'image';
-	}
+  canHandle(element: HTMLElement, selectionType: string): boolean {
+    return selectionType === "image" && element.dataset.editable === "image"
+  }
 
-	async copy(element: HTMLElement): Promise<void> {
-		// 이미지 플러그인의 copy 로직
-	}
+  async copy(element: HTMLElement): Promise<void> {
+    // 이미지 플러그인의 copy 로직
+  }
 
-	async cut(element: HTMLElement): Promise<void> {
-		// 이미지 플러그인의 cut 로직
-	}
+  async cut(element: HTMLElement): Promise<void> {
+    // 이미지 플러그인의 cut 로직
+  }
 
-	// ... 다른 액션들
+  // ... 다른 액션들
 }
 
 // Repeatable 액션 핸들러
 class RepeatableActionHandler implements ActionHandler {
-	canHandle(element: HTMLElement, selectionType: string): boolean {
-		return selectionType === 'repeatable';
-	}
+  canHandle(element: HTMLElement, selectionType: string): boolean {
+    return selectionType === "repeatable"
+  }
 
-	async copy(element: HTMLElement): Promise<void> {
-		// 기존 copySelectedRepeatable 로직
-	}
+  async copy(element: HTMLElement): Promise<void> {
+    // 기존 copySelectedRepeatable 로직
+  }
 
-	// ... 다른 액션들
+  // ... 다른 액션들
 }
 
 // 텍스트 액션 핸들러
 class TextActionHandler implements ActionHandler {
-	canHandle(element: HTMLElement, selectionType: string): boolean {
-		return selectionType === 'text';
-	}
+  canHandle(element: HTMLElement, selectionType: string): boolean {
+    return selectionType === "text"
+  }
 
-	async copy(element: HTMLElement): Promise<void> {
-		// 기존 copySelected 로직
-	}
+  async copy(element: HTMLElement): Promise<void> {
+    // 기존 copySelected 로직
+  }
 
-	// ... 다른 액션들
+  // ... 다른 액션들
 }
 ```
 
@@ -109,39 +109,39 @@ class TextActionHandler implements ActionHandler {
 
 ```typescript
 class SelectionActionManager {
-	private handlers: ActionHandler[] = [];
+  private handlers: ActionHandler[] = []
 
-	registerHandler(handler: ActionHandler): void {
-		this.handlers.push(handler);
-	}
+  registerHandler(handler: ActionHandler): void {
+    this.handlers.push(handler)
+  }
 
-	private findHandler(element: HTMLElement, selectionType: string): ActionHandler | null {
-		return this.handlers.find((handler) => handler.canHandle(element, selectionType)) || null;
-	}
+  private findHandler(element: HTMLElement, selectionType: string): ActionHandler | null {
+    return this.handlers.find((handler) => handler.canHandle(element, selectionType)) || null
+  }
 
-	async executeAction(action: string, element: HTMLElement, selectionType: string): Promise<void> {
-		const handler = this.findHandler(element, selectionType);
-		if (!handler) {
-			throw new Error(`No handler found for type: ${selectionType}`);
-		}
+  async executeAction(action: string, element: HTMLElement, selectionType: string): Promise<void> {
+    const handler = this.findHandler(element, selectionType)
+    if (!handler) {
+      throw new Error(`No handler found for type: ${selectionType}`)
+    }
 
-		switch (action) {
-			case 'copy':
-				await handler.copy(element);
-				break;
-			case 'cut':
-				await handler.cut(element);
-				break;
-			case 'paste':
-				await handler.paste(element);
-				break;
-			case 'delete':
-				await handler.delete(element);
-				break;
-			default:
-				throw new Error(`Unknown action: ${action}`);
-		}
-	}
+    switch (action) {
+      case "copy":
+        await handler.copy(element)
+        break
+      case "cut":
+        await handler.cut(element)
+        break
+      case "paste":
+        await handler.paste(element)
+        break
+      case "delete":
+        await handler.delete(element)
+        break
+      default:
+        throw new Error(`Unknown action: ${action}`)
+    }
+  }
 }
 ```
 
@@ -150,27 +150,27 @@ class SelectionActionManager {
 ```typescript
 // 리팩토링 후 - 깔끔한 단일 책임
 async function handleCopyShortcut() {
-	if (firstSelected) {
-		await selectionActionManager.executeAction('copy', firstSelected, selectedType);
-	}
+  if (firstSelected) {
+    await selectionActionManager.executeAction("copy", firstSelected, selectedType)
+  }
 }
 
 async function handleCutShortcut() {
-	if (firstSelected) {
-		await selectionActionManager.executeAction('cut', firstSelected, selectedType);
-	}
+  if (firstSelected) {
+    await selectionActionManager.executeAction("cut", firstSelected, selectedType)
+  }
 }
 
 async function handlePasteShortcut() {
-	if (firstSelected) {
-		await selectionActionManager.executeAction('paste', firstSelected, selectedType);
-	}
+  if (firstSelected) {
+    await selectionActionManager.executeAction("paste", firstSelected, selectedType)
+  }
 }
 
 async function handleDeleteShortcut() {
-	if (firstSelected) {
-		await selectionActionManager.executeAction('delete', firstSelected, selectedType);
-	}
+  if (firstSelected) {
+    await selectionActionManager.executeAction("delete", firstSelected, selectedType)
+  }
 }
 ```
 
@@ -220,23 +220,23 @@ async function handleDeleteShortcut() {
 
 ```typescript
 interface Command {
-	execute(): Promise<void>;
-	undo(): Promise<void>;
+  execute(): Promise<void>
+  undo(): Promise<void>
 }
 
 class CopyCommand implements Command {
-	constructor(
-		private handler: ActionHandler,
-		private element: HTMLElement
-	) {}
+  constructor(
+    private handler: ActionHandler,
+    private element: HTMLElement,
+  ) {}
 
-	async execute(): Promise<void> {
-		await this.handler.copy(this.element);
-	}
+  async execute(): Promise<void> {
+    await this.handler.copy(this.element)
+  }
 
-	async undo(): Promise<void> {
-		// 복사는 undo 불필요
-	}
+  async undo(): Promise<void> {
+    // 복사는 undo 불필요
+  }
 }
 ```
 
@@ -244,15 +244,15 @@ class CopyCommand implements Command {
 
 ```typescript
 class LoggingActionHandler implements ActionHandler {
-	constructor(private baseHandler: ActionHandler) {}
+  constructor(private baseHandler: ActionHandler) {}
 
-	async copy(element: HTMLElement): Promise<void> {
-		console.log(`Copying ${element.dataset.editable} element`);
-		await this.baseHandler.copy(element);
-		console.log('Copy completed');
-	}
+  async copy(element: HTMLElement): Promise<void> {
+    console.log(`Copying ${element.dataset.editable} element`)
+    await this.baseHandler.copy(element)
+    console.log("Copy completed")
+  }
 
-	// ... 다른 메서드들도 동일하게 래핑
+  // ... 다른 메서드들도 동일하게 래핑
 }
 ```
 
@@ -260,19 +260,19 @@ class LoggingActionHandler implements ActionHandler {
 
 ```typescript
 class SafeActionManager extends SelectionActionManager {
-	async executeAction(action: string, element: HTMLElement, selectionType: string): Promise<void> {
-		try {
-			await super.executeAction(action, element, selectionType);
-		} catch (error) {
-			console.error(`Action failed: ${action} on ${selectionType}`, error);
-			// 사용자에게 알림 표시
-			this.showErrorNotification(`${action} 작업에 실패했습니다.`);
-		}
-	}
+  async executeAction(action: string, element: HTMLElement, selectionType: string): Promise<void> {
+    try {
+      await super.executeAction(action, element, selectionType)
+    } catch (error) {
+      console.error(`Action failed: ${action} on ${selectionType}`, error)
+      // 사용자에게 알림 표시
+      this.showErrorNotification(`${action} 작업에 실패했습니다.`)
+    }
+  }
 
-	private showErrorNotification(message: string): void {
-		// 토스트 알림 등으로 사용자에게 피드백
-	}
+  private showErrorNotification(message: string): void {
+    // 토스트 알림 등으로 사용자에게 피드백
+  }
 }
 ```
 

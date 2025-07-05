@@ -73,20 +73,20 @@
 
 ```typescript
 interface EditorPlugin {
-	// 플러그인 식별자
-	name: string;
+  // 플러그인 식별자
+  name: string
 
-	// 이 플러그인이 편집할 수 있는 요소인지 판단
-	canEdit(element: HTMLElement): boolean;
+  // 이 플러그인이 편집할 수 있는 요소인지 판단
+  canEdit(element: HTMLElement): boolean
 
-	// 편집 UI 생성
-	createEditor(element: HTMLElement): EditorUI;
+  // 편집 UI 생성
+  createEditor(element: HTMLElement): EditorUI
 
-	// 값 변경 처리
-	handleChange(element: HTMLElement, value: any): void;
+  // 값 변경 처리
+  handleChange(element: HTMLElement, value: any): void
 
-	// 키보드 단축키
-	shortcuts?: KeyboardShortcut[];
+  // 키보드 단축키
+  shortcuts?: KeyboardShortcut[]
 }
 ```
 
@@ -94,15 +94,28 @@ interface EditorPlugin {
 
 ```html
 <!-- 편집 가능한 텍스트 -->
-<h1 data-editable="text" data-max-length="50">제목</h1>
+<h1
+  data-editable="text"
+  data-max-length="50"
+>
+  제목
+</h1>
 
 <!-- 편집 가능한 이미지 -->
-<img data-editable="image" src="..." alt="..." />
+<img
+  data-editable="image"
+  src="..."
+  alt="..."
+/>
 
 <!-- 반복 가능한 컨테이너 -->
-<ul data-repeatable="list-item" data-min="1" data-max="10">
-	<li>항목 1</li>
-	<li>항목 2</li>
+<ul
+  data-repeatable="list-item"
+  data-min="1"
+  data-max="10"
+>
+  <li>항목 1</li>
+  <li>항목 2</li>
 </ul>
 ```
 

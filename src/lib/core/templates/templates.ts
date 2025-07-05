@@ -1,12 +1,13 @@
-import type { Template } from './types';
+import type { Template } from "./types"
+import { createTemplate } from "./convention"
 
 export const defaultTemplates: Template[] = [
-	{
-		id: 'hero-minimal',
-		name: 'Hero',
-		description: 'Simple hero section',
-		category: 'hero',
-		html: `
+  {
+    id: "hero-minimal",
+    name: "Hero",
+    description: "Simple hero section",
+    category: "hero",
+    html: `
 			<section class="py-24 text-center border-b border-stone-200">
 				<div class="max-w-4xl mx-auto px-8">
 					<div class="inline-block px-3 py-1 bg-stone-100 text-stone-600 text-sm mb-8 font-medium">
@@ -25,33 +26,33 @@ export const defaultTemplates: Template[] = [
 				</div>
 			</section>
 		`,
-		editableElements: [
-			{
-				selector: '.hero-title',
-				type: 'text',
-				defaultValue: 'Product Name',
-				constraints: { maxLength: 60 }
-			},
-			{
-				selector: '.hero-description',
-				type: 'text',
-				defaultValue: 'Brief description of what this product does',
-				constraints: { maxLength: 150 }
-			},
-			{
-				selector: '.hero-cta',
-				type: 'text',
-				defaultValue: 'Get Started',
-				constraints: { maxLength: 30 }
-			}
-		]
-	},
-	{
-		id: 'hero-centered',
-		name: 'Centered Hero',
-		description: 'Centered hero with subtitle',
-		category: 'hero',
-		html: `
+    editableElements: [
+      {
+        selector: ".hero-title",
+        type: "text",
+        defaultValue: "Product Name",
+        constraints: { maxLength: 60 },
+      },
+      {
+        selector: ".hero-description",
+        type: "text",
+        defaultValue: "Brief description of what this product does",
+        constraints: { maxLength: 150 },
+      },
+      {
+        selector: ".hero-cta",
+        type: "text",
+        defaultValue: "Get Started",
+        constraints: { maxLength: 30 },
+      },
+    ],
+  },
+  {
+    id: "hero-centered",
+    name: "Centered Hero",
+    description: "Centered hero with subtitle",
+    category: "hero",
+    html: `
 			<section class="py-32 text-center">
 				<div class="max-w-3xl mx-auto px-8">
 					<h1 class="hero-title text-5xl md:text-7xl font-bold mb-6 text-stone-900 tracking-tight">Simple. Powerful.</h1>
@@ -62,33 +63,31 @@ export const defaultTemplates: Template[] = [
 				</div>
 			</section>
 		`,
-		editableElements: [
-			{
-				selector: '.hero-title',
-				type: 'text',
-				defaultValue: 'Simple. Powerful.',
-				constraints: { maxLength: 50 }
-			},
-			{
-				selector: '.hero-subtitle',
-				type: 'text',
-				defaultValue: 'Focus on what matters',
-				constraints: { maxLength: 100 }
-			},
-			{
-				selector: '.hero-cta',
-				type: 'text',
-				defaultValue: 'Start Building',
-				constraints: { maxLength: 30 }
-			}
-		]
-	},
-	{
-		id: 'features-grid',
-		name: 'Features',
-		description: '3-column feature grid',
-		category: 'features',
-		html: `
+    editableElements: [
+      {
+        selector: ".hero-title",
+        type: "text",
+        defaultValue: "Simple. Powerful.",
+        constraints: { maxLength: 50 },
+      },
+      {
+        selector: ".hero-subtitle",
+        type: "text",
+        defaultValue: "Focus on what matters",
+        constraints: { maxLength: 100 },
+      },
+      {
+        selector: ".hero-cta",
+        type: "text",
+        defaultValue: "Start Building",
+        constraints: { maxLength: 30 },
+      },
+    ],
+  },
+  createTemplate(
+    "features-grid",
+    "Features",
+    `
 			<section class="py-24 border-b border-stone-200">
 				<div class="max-w-6xl mx-auto px-8">
 					<div class="text-center mb-16">
@@ -97,51 +96,65 @@ export const defaultTemplates: Template[] = [
 					</div>
 					<div class="grid grid-cols-1 md:grid-cols-3 gap-12">
 						<div class="text-center" data-repeatable="feature">
-							<div class="w-12 h-12 bg-stone-900 mx-auto mb-6"></div>
+							<div class="w-12 h-12 mx-auto mb-6 text-stone-700" data-editable="icon">
+								<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+								</svg>
+							</div>
 							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Fast</h3>
-							<p class="feature-description text-stone-600" data-editable="text">Built for speed and performance</p>
+							<p class="feature-description text-stone-600 mb-4" data-editable="text">Built for speed and performance</p>
+							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="link">
+								<span data-editable="text">자세히 보기</span>
+								<svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+								</svg>
+							</a>
 						</div>
 						<div class="text-center" data-repeatable="feature">
-							<div class="w-12 h-12 bg-stone-900 mx-auto mb-6"></div>
+							<div class="w-12 h-12 mx-auto mb-6 text-stone-700" data-editable="icon">
+								<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+								</svg>
+							</div>
 							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Secure</h3>
-							<p class="feature-description text-stone-600" data-editable="text">Enterprise-grade security</p>
+							<p class="feature-description text-stone-600 mb-4" data-editable="text">Enterprise-grade security</p>
+							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="link">
+								<span data-editable="text">자세히 보기</span>
+								<svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+								</svg>
+							</a>
 						</div>
 						<div class="text-center" data-repeatable="feature">
-							<div class="w-12 h-12 bg-stone-900 mx-auto mb-6"></div>
+							<div class="w-12 h-12 mx-auto mb-6 text-stone-700" data-editable="icon">
+								<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+								</svg>
+							</div>
 							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Simple</h3>
-							<p class="feature-description text-stone-600" data-editable="text">Easy to use and understand</p>
+							<p class="feature-description text-stone-600 mb-4" data-editable="text">Easy to use and understand</p>
+							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="link">
+								<span data-editable="text">자세히 보기</span>
+								<svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+								</svg>
+							</a>
 						</div>
 					</div>
 				</div>
 			</section>
 		`,
-		editableElements: [
-			{
-				selector: '.section-title',
-				type: 'text',
-				defaultValue: 'Features',
-				constraints: { maxLength: 50 }
-			},
-			{
-				selector: '.feature-title',
-				type: 'text',
-				defaultValue: 'Feature Name',
-				constraints: { maxLength: 30 }
-			},
-			{
-				selector: '.feature-description',
-				type: 'text',
-				defaultValue: 'Feature description',
-				constraints: { maxLength: 100 }
-			}
-		]
-	},
-	{
-		id: 'cta-simple',
-		name: 'CTA',
-		description: 'Simple call-to-action',
-		category: 'cta',
-		html: `
+    {
+      description: "3-column feature grid",
+      category: "features",
+    },
+  ),
+  {
+    id: "cta-simple",
+    name: "CTA",
+    description: "Simple call-to-action",
+    category: "cta",
+    html: `
 			<section class="py-24 bg-stone-900 text-white text-center">
 				<div class="max-w-3xl mx-auto px-8">
 					<h2 class="cta-title text-3xl md:text-4xl font-bold mb-6">Ready to get started?</h2>
@@ -152,33 +165,33 @@ export const defaultTemplates: Template[] = [
 				</div>
 			</section>
 		`,
-		editableElements: [
-			{
-				selector: '.cta-title',
-				type: 'text',
-				defaultValue: 'Ready to get started?',
-				constraints: { maxLength: 60 }
-			},
-			{
-				selector: '.cta-description',
-				type: 'text',
-				defaultValue: 'Join thousands of users today',
-				constraints: { maxLength: 100 }
-			},
-			{
-				selector: '.cta-button',
-				type: 'text',
-				defaultValue: 'Get Started',
-				constraints: { maxLength: 30 }
-			}
-		]
-	},
-	{
-		id: 'content-two-column',
-		name: 'Two Column',
-		description: 'Two-column content layout',
-		category: 'content',
-		html: `
+    editableElements: [
+      {
+        selector: ".cta-title",
+        type: "text",
+        defaultValue: "Ready to get started?",
+        constraints: { maxLength: 60 },
+      },
+      {
+        selector: ".cta-description",
+        type: "text",
+        defaultValue: "Join thousands of users today",
+        constraints: { maxLength: 100 },
+      },
+      {
+        selector: ".cta-button",
+        type: "text",
+        defaultValue: "Get Started",
+        constraints: { maxLength: 30 },
+      },
+    ],
+  },
+  {
+    id: "content-two-column",
+    name: "Two Column",
+    description: "Two-column content layout",
+    category: "content",
+    html: `
 			<section class="py-24 border-b border-stone-200">
 				<div class="max-w-6xl mx-auto px-8">
 					<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -212,42 +225,42 @@ export const defaultTemplates: Template[] = [
 				</div>
 			</section>
 		`,
-		editableElements: [
-			{
-				selector: '.content-title',
-				type: 'text',
-				defaultValue: 'Why choose us',
-				constraints: { maxLength: 50 }
-			},
-			{
-				selector: '.content-text',
-				type: 'text',
-				defaultValue: 'We provide the tools and infrastructure you need to build amazing products.',
-				constraints: { maxLength: 200 }
-			},
-			{
-				selector: '.list-item',
-				type: 'text',
-				defaultValue: 'List item',
-				constraints: { maxLength: 50 }
-			},
-			{
-				selector: '[data-editable="image"]',
-				type: 'image',
-				defaultValue: '',
-				constraints: {
-					allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-					maxSize: 5242880 // 5MB
-				}
-			}
-		]
-	},
-	{
-		id: 'testimonial-single',
-		name: 'Testimonial',
-		description: 'Single testimonial',
-		category: 'testimonial',
-		html: `
+    editableElements: [
+      {
+        selector: ".content-title",
+        type: "text",
+        defaultValue: "Why choose us",
+        constraints: { maxLength: 50 },
+      },
+      {
+        selector: ".content-text",
+        type: "text",
+        defaultValue: "We provide the tools and infrastructure you need to build amazing products.",
+        constraints: { maxLength: 200 },
+      },
+      {
+        selector: ".list-item",
+        type: "text",
+        defaultValue: "List item",
+        constraints: { maxLength: 50 },
+      },
+      {
+        selector: '[data-editable="image"]',
+        type: "image",
+        defaultValue: "",
+        constraints: {
+          allowedFormats: ["jpg", "jpeg", "png", "webp"],
+          maxSize: 5242880, // 5MB
+        },
+      },
+    ],
+  },
+  {
+    id: "testimonial-single",
+    name: "Testimonial",
+    description: "Single testimonial",
+    category: "testimonial",
+    html: `
 			<section class="py-24 text-center border-b border-stone-200">
 				<div class="max-w-4xl mx-auto px-8">
 					<blockquote class="testimonial-quote text-2xl md:text-3xl font-light text-stone-900 mb-8 leading-relaxed">
@@ -260,33 +273,33 @@ export const defaultTemplates: Template[] = [
 				</div>
 			</section>
 		`,
-		editableElements: [
-			{
-				selector: '.testimonial-quote',
-				type: 'text',
-				defaultValue: '"This product has transformed how we work. Highly recommended."',
-				constraints: { maxLength: 200 }
-			},
-			{
-				selector: '.author-name',
-				type: 'text',
-				defaultValue: 'John Smith',
-				constraints: { maxLength: 50 }
-			},
-			{
-				selector: '.author-role',
-				type: 'text',
-				defaultValue: 'CEO, Company',
-				constraints: { maxLength: 50 }
-			}
-		]
-	},
-	{
-		id: 'pricing-simple',
-		name: 'Pricing',
-		description: 'Simple pricing table',
-		category: 'pricing',
-		html: `
+    editableElements: [
+      {
+        selector: ".testimonial-quote",
+        type: "text",
+        defaultValue: '"This product has transformed how we work. Highly recommended."',
+        constraints: { maxLength: 200 },
+      },
+      {
+        selector: ".author-name",
+        type: "text",
+        defaultValue: "John Smith",
+        constraints: { maxLength: 50 },
+      },
+      {
+        selector: ".author-role",
+        type: "text",
+        defaultValue: "CEO, Company",
+        constraints: { maxLength: 50 },
+      },
+    ],
+  },
+  {
+    id: "pricing-simple",
+    name: "Pricing",
+    description: "Simple pricing table",
+    category: "pricing",
+    html: `
 			<section class="py-24 text-center border-b border-stone-200">
 				<div class="max-w-4xl mx-auto px-8">
 					<h2 class="section-title text-3xl font-bold text-stone-900 mb-4">Pricing</h2>
@@ -312,45 +325,45 @@ export const defaultTemplates: Template[] = [
 				</div>
 			</section>
 		`,
-		editableElements: [
-			{
-				selector: '.section-title',
-				type: 'text',
-				defaultValue: 'Pricing',
-				constraints: { maxLength: 50 }
-			},
-			{
-				selector: '.price-plan',
-				type: 'text',
-				defaultValue: 'Plan Name',
-				constraints: { maxLength: 30 }
-			},
-			{
-				selector: '.price-amount',
-				type: 'text',
-				defaultValue: '$99',
-				constraints: { maxLength: 20 }
-			},
-			{
-				selector: '.price-description',
-				type: 'text',
-				defaultValue: 'Plan description',
-				constraints: { maxLength: 100 }
-			},
-			{
-				selector: '.price-button',
-				type: 'text',
-				defaultValue: 'Choose Plan',
-				constraints: { maxLength: 30 }
-			}
-		]
-	},
-	{
-		id: 'content-tabbed-showcase',
-		name: 'Tabbed Showcase',
-		description: 'Content showcase with tabs',
-		category: 'content',
-		html: `
+    editableElements: [
+      {
+        selector: ".section-title",
+        type: "text",
+        defaultValue: "Pricing",
+        constraints: { maxLength: 50 },
+      },
+      {
+        selector: ".price-plan",
+        type: "text",
+        defaultValue: "Plan Name",
+        constraints: { maxLength: 30 },
+      },
+      {
+        selector: ".price-amount",
+        type: "text",
+        defaultValue: "$99",
+        constraints: { maxLength: 20 },
+      },
+      {
+        selector: ".price-description",
+        type: "text",
+        defaultValue: "Plan description",
+        constraints: { maxLength: 100 },
+      },
+      {
+        selector: ".price-button",
+        type: "text",
+        defaultValue: "Choose Plan",
+        constraints: { maxLength: 30 },
+      },
+    ],
+  },
+  {
+    id: "content-tabbed-showcase",
+    name: "Tabbed Showcase",
+    description: "Content showcase with tabs",
+    category: "content",
+    html: `
 			<section class="section-margin py-24 border-b border-stone-200">
 				<div class="container max-w-6xl mx-auto px-8">
 					<h3 class="showcase-title text-[22px] lg:text-[28px] font-bold leading-[150%] mb-2.5 lg:mb-5 lg:max-w-[800px] text-black m-0" data-editable="text">
@@ -385,7 +398,7 @@ export const defaultTemplates: Template[] = [
 											<img class="tab-image w-full h-full object-cover absolute inset-0" src="" alt="Showcase image" style="display: none;" />
 											<div class="image-placeholder flex items-center justify-center h-full text-stone-400 group-hover:text-stone-600 transition-colors absolute inset-0 bg-stone-50">
 												<svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
 												</svg>
 											</div>
 										</div>
@@ -404,7 +417,7 @@ export const defaultTemplates: Template[] = [
 										<a class="tab-link hover:text-blue-600 flex items-center p-0 text-base font-semibold text-black transition" href="#" data-editable="link">
 											<span class="tab-link-text" data-editable="text">자세히 보기</span>
 											<svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
 											</svg>
 										</a>
 									</div>
@@ -415,60 +428,54 @@ export const defaultTemplates: Template[] = [
 				</div>
 			</section>
 		`,
-		editableElements: [
-			{
-				selector: '.showcase-title',
-				type: 'text',
-				defaultValue: '새로운 사용자 경험과 비즈니스 기회를 만들어 보세요.',
-				constraints: { maxLength: 100 }
-			},
-			{
-				selector: '.tab-name',
-				type: 'text',
-				defaultValue: 'Tab Name',
-				constraints: { maxLength: 30 }
-			},
-			{
-				selector: '.tab-title',
-				type: 'text',
-				defaultValue: 'Content Title',
-				constraints: { maxLength: 50 }
-			},
-			{
-				selector: '.tab-description',
-				type: 'text',
-				defaultValue: 'Content description',
-				constraints: { maxLength: 300 }
-			},
-			{
-				selector: '.tab-link-text',
-				type: 'text',
-				defaultValue: '자세히 보기',
-				constraints: { maxLength: 30 }
-			},
-			{
-				selector: '[data-editable="image"]',
-				type: 'image',
-				defaultValue: '',
-				constraints: {
-					allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-					maxSize: 5242880 // 5MB
-				}
-			},
-			{
-				selector: '[data-editable="link"]',
-				type: 'link',
-				defaultValue: '#',
-				constraints: {}
-			}
-		]
-	}
-];
+    editableElements: [
+      {
+        selector: '.showcase-title',
+        type: 'text',
+        defaultValue: '새로운 사용자 경험과 비즈니스 기회를 만들어 보세요.',
+        constraints: { maxLength: 100 }
+      },
+      {
+        selector: '.tab-name',
+        type: 'text',
+        defaultValue: 'Tab Name',
+        constraints: { maxLength: 50 }
+      },
+      {
+        selector: '[data-editable="image"]',
+        type: 'image',
+        defaultValue: '',
+        constraints: {
+          allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+          maxSize: 5242880
+        }
+      },
+      {
+        selector: '.tab-title',
+        type: 'text',
+        defaultValue: 'Tab Title',
+        constraints: { maxLength: 60 }
+      },
+      {
+        selector: '.tab-description',
+        type: 'text',
+        defaultValue: 'Tab description content',
+        constraints: { maxLength: 300 }
+      },
+      {
+        selector: '.tab-link-text',
+        type: 'text',
+        defaultValue: '자세히 보기',
+        constraints: { maxLength: 30 }
+      }
+    ]
+  },
+]
 
 export function getTemplateById(id: string): Template | undefined {
-	return defaultTemplates.find((template) => template.id === id);
+  return defaultTemplates.find((template) => template.id === id)
 }
 
-export function getTemplatesByCategory(category: Template['category']): Template[] {
-	return defaultTemplates.filter((template) => template.category === category);
+export function getTemplatesByCategory(category: Template["category"]): Template[] {
+  return defaultTemplates.filter((template) => template.category === category)
 }

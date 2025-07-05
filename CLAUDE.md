@@ -40,21 +40,39 @@ pnpm test:e2e     # Playwright E2E tests
 
 ```
 src/
-├── routes/          # SvelteKit pages and layouts
-│   ├── +page.svelte # Main editor with Svelte-native implementation
-│   └── demo/        # Demo page with class-based selection system
-├── lib/            # Reusable components and utilities
+├── routes/              # SvelteKit pages and layouts
+│   ├── +page.svelte     # Main editor with full implementation
+│   ├── demo/            # Demo page with class-based selection
+│   ├── reactive-demo/   # Reactive selection demo
+│   ├── rune-demo/       # Svelte 5 runes demo
+│   └── components-demo/ # Component-based demo
+├── lib/                # Reusable components and utilities
 │   ├── core/
-│   │   ├── history/    # Loro CRDT-based history management
-│   │   ├── selection/  # SelectionManager class implementation
-│   │   └── plugins/    # Plugin system (planned, not yet implemented)
+│   │   ├── history/     # Loro CRDT-based history management
+│   │   ├── selection/   # Unified SelectionManager
+│   │   ├── plugins/     # Plugin system (fully implemented)
+│   │   │   ├── editable/    # Editable element plugins
+│   │   │   │   ├── EditablePluginManager.ts
+│   │   │   │   └── plugins/
+│   │   │   │       ├── text.ts
+│   │   │   │       ├── image.ts
+│   │   │   │       ├── icon.ts
+│   │   │   │       └── link.ts
+│   │   │   └── actions/     # Action handlers
+│   │   │       └── RepeatableActionHandler.ts
+│   │   └── templates/   # Template system
+│   │       └── templates.ts (30+ templates)
 │   ├── components/
-│   │   └── Inspector.svelte  # Property inspector panel
-│   └── paraglide/      # I18n message functions
-├── app.css         # Global styles (Tailwind CSS)
-├── app.d.ts        # Global TypeScript types
-├── hooks.server.ts # Server-side hooks
-└── hooks.ts        # Client-side hooks
+│   │   ├── Inspector.svelte     # Properties & history panel
+│   │   ├── LeftSidebar.svelte  # Section management
+│   │   ├── SelectionOverlay.svelte # Floating action UI
+│   │   ├── TemplateRenderer.svelte # Template rendering
+│   │   └── Mock*.svelte         # Mock UI components
+│   └── paraglide/       # I18n message functions
+├── app.css             # Global styles (Tailwind CSS)
+├── app.d.ts            # Global TypeScript types
+├── hooks.server.ts     # Server-side hooks
+└── hooks.ts            # Client-side hooks
 ```
 
 ### Key Configurations
@@ -67,21 +85,23 @@ src/
 
 ### Current Implementation Status
 
-The project has **two parallel implementations**:
+The project has evolved to a **unified implementation** combining the best of different approaches:
 
-1. **Svelte-native Implementation** (`/` route) - Primary approach
-   - Reactive stores for state management
-   - Mode-based editing (select/edit modes)
-   - Inspector panel for properties and history
-   - Floating UI for positioning
+1. **Main Editor** (`/` route) - Production-ready implementation
+   - Unified SelectionManager for centralized state management
+   - Plugin-based architecture for editable elements
+   - Full template system with 30+ pre-built templates
    - Loro CRDT-based history with undo/redo
    - Keyboard shortcuts (Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z)
+   - Drag & drop support for sections and images
+   - Multi-selection with Shift/Cmd+Click
+   - Floating UI overlay for contextual actions
 
-2. **Class-based Selection System** (`/demo` route) - Experimental
-   - Object-oriented `SelectionManager` interface
-   - Event delegation for performance
-   - Keyboard navigation (Tab, Arrows, Enter, Escape)
-   - Copy/paste support
+2. **Demo Pages** - For testing and reference
+   - `/demo` - Original class-based selection system
+   - `/reactive-demo` - Reactive selection with stores
+   - `/rune-demo` - Svelte 5 runes implementation
+   - `/components-demo` - Component-based approach
 
 ### Core Features
 
@@ -94,13 +114,35 @@ The project has **two parallel implementations**:
 - Version limit of 50 for memory management
 - Future: Real-time collaboration support
 
-#### Selection System
+#### Selection System (`/src/lib/core/selection/`)
 
+- Unified SelectionManager class for state management
 - Click-based selection with visual overlay
 - Multi-selection with Shift/Cmd+Click
 - Keyboard navigation (Tab, Shift+Tab, Arrow keys)
 - Mode switching (Select → Edit with Enter/Double-click)
 - Escape key for deselection
+- Type-specific visual styles (different colors for text, image, icon, etc.)
+
+#### Plugin System (`/src/lib/core/plugins/`)
+
+- EditablePluginManager for centralized plugin management
+- Strategy Pattern implementation for extensibility
+- Built-in plugins:
+  - **Text Plugin**: Inline editing with contentEditable
+  - **Image Plugin**: Upload, drag & drop, clipboard support
+  - **Icon Plugin**: SVG icon picker with 10+ icons
+  - **Link Plugin**: URL editing with modal interface
+- Plugin lifecycle hooks (init, onClick, onDoubleClick, etc.)
+- Custom actions per plugin type
+
+#### Template System (`/src/lib/core/templates/`)
+
+- 30+ pre-built templates across 7 categories
+- Categories: Hero, Features, CTA, Testimonials, Stats, Pricing, Contact
+- Automatic editable zone detection
+- Constraint validation (max-length, required fields, etc.)
+- Section management with drag & drop reordering
 
 ### Data Attribute Conventions
 
@@ -136,8 +178,26 @@ The project has **two parallel implementations**:
 - The project uses `pnpm` as package manager (not npm or yarn)
 - TypeScript is configured in strict mode - ensure all code is properly typed
 - Always run `pnpm lint` and `pnpm check` before committing changes
-- When developing, focus on the Svelte-native implementation (`/` route)
-- The plugin system architecture is defined but not yet implemented
+- The main implementation is at the root route (`/`)
+- Plugin system is fully implemented with 4 core plugins
+- When extending functionality, create new plugins rather than modifying core code
+
+## Recent Updates (2025-01-04)
+
+### Completed Features
+
+- ✅ Unified selection system with SelectionManager
+- ✅ Plugin-based architecture for all editable elements
+- ✅ 30+ templates with drag & drop section management
+- ✅ Icon editing plugin with SVG picker
+- ✅ Fixed spacebar blur bug in text editing
+- ✅ Full documentation in Korean (docs/\*.md)
+
+### Known Issues
+
+- Type errors in plugin system (non-blocking)
+- Drag & drop for repeatable elements not fully implemented
+- Some E2E tests need updating
 
 ## Dual-Mode System (Planned)
 

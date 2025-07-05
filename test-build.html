@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Build Test - Open in browser and check Console</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .note {
+            background: #e7f3ff;
+            border: 1px solid #b6d7ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .link {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Visual CMS Editor - Selection Test</h1>
+        
+        <div class="note">
+            <h3>🔧 Test Instructions:</h3>
+            <ol>
+                <li>Open the built application in your browser: <a href="build/index.html" class="link">build/index.html</a></li>
+                <li>Open Developer Tools (F12) and go to Console tab</li>
+                <li>Try clicking on editable elements (headlines, buttons, text)</li>
+                <li>Look for debug logs starting with 🔵, 🟢, 🟡, 🔴</li>
+                <li>Check if data-selected attributes are being applied</li>
+            </ol>
+        </div>
+
+        <div class="note">
+            <h3>🕵️ What to check:</h3>
+            <ul>
+                <li><strong>Event firing:</strong> Look for "🔵 handleElementClick triggered" logs</li>
+                <li><strong>Element detection:</strong> Check "hasEditable" and "hasRepeatable" values</li>
+                <li><strong>Selection process:</strong> See "🟡 selectElement called" and attribute application</li>
+                <li><strong>Visual feedback:</strong> Elements should get blue outline when selected</li>
+            </ul>
+        </div>
+
+        <div class="note">
+            <h3>🔍 Manual Console Commands:</h3>
+            <p>You can also test manually in the browser console:</p>
+            <pre style="background: #f0f0f0; padding: 10px; border-radius: 3px;">
+// Check if editable elements exist
+document.querySelectorAll('[data-editable]').length
+
+// Manually apply selection to first editable element
+const firstEditable = document.querySelector('[data-editable]');
+if (firstEditable) {
+    firstEditable.setAttribute('data-selected', 'true');
+    firstEditable.setAttribute('data-selection-type', 'text');
+    console.log('Applied selection manually');
+}
+
+// Clear all selections
+document.querySelectorAll('[data-selected]').forEach(el => {
+    el.removeAttribute('data-selected');
+    el.removeAttribute('data-selection-type');
+});
+            </pre>
+        </div>
+
+        <div class="test-container">
+            <h3>Quick Test Links:</h3>
+            <a href="build/index.html" class="link">→ Open Built Application</a><br>
+            <a href="test-selection.html" class="link">→ Open Simple Selection Test</a><br>
+            <a href="debug-selection.js" class="link">→ Download Debug Script</a>
+        </div>
+    </div>
+
+    <script>
+        console.log('🔧 Test page loaded. Click links above to test selection functionality.');
+    </script>
+</body>
+</html>

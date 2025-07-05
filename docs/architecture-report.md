@@ -61,10 +61,10 @@ The Visual CMS Editor follows a **layered architecture** with clear separation o
 
 ```typescript
 export class SelectionManager {
-	private items: Writable<Map<string, SelectionItem>>;
-	public selectedItems: Readable<SelectionItem[]>;
-	public selectedElements: Readable<Set<HTMLElement>>;
-	// ... other derived stores
+  private items: Writable<Map<string, SelectionItem>>
+  public selectedItems: Readable<SelectionItem[]>
+  public selectedElements: Readable<Set<HTMLElement>>
+  // ... other derived stores
 }
 ```
 
@@ -87,9 +87,9 @@ export class SelectionManager {
 
 ```typescript
 export class LoroHistoryManager implements HistoryManager {
-	private textHistories: Map<string, TextHistory>;
-	private editHistory: EditAction[];
-	private structuralSnapshots: StructuralSnapshot[];
+  private textHistories: Map<string, TextHistory>
+  private editHistory: EditAction[]
+  private structuralSnapshots: StructuralSnapshot[]
 }
 ```
 
@@ -112,11 +112,11 @@ export class LoroHistoryManager implements HistoryManager {
 
 ```typescript
 export interface Template {
-	id: string;
-	name: string;
-	category: 'hero' | 'features' | 'cta' | 'content' | 'testimonial' | 'pricing';
-	html: string;
-	editableElements: EditableElement[];
+  id: string
+  name: string
+  category: "hero" | "features" | "cta" | "content" | "testimonial" | "pricing"
+  html: string
+  editableElements: EditableElement[]
 }
 ```
 
@@ -167,14 +167,14 @@ src/
 **Selection Types**:
 
 ```typescript
-export type SelectionType = 'section' | 'repeatable' | 'text' | 'image' | 'icon' | 'link';
-export type SelectionContext = 'sidebar' | 'canvas';
+export type SelectionType = "section" | "repeatable" | "text" | "image" | "icon" | "link"
+export type SelectionContext = "sidebar" | "canvas"
 export interface SelectionItem {
-	id: string;
-	type: SelectionType;
-	element: HTMLElement | number;
-	context: SelectionContext;
-	data?: any;
+  id: string
+  type: SelectionType
+  element: HTMLElement | number
+  context: SelectionContext
+  data?: any
 }
 ```
 
@@ -182,14 +182,14 @@ export interface SelectionItem {
 
 ```typescript
 export interface EditableElement {
-	selector: string;
-	type: 'text' | 'image' | 'icon' | 'link';
-	defaultValue: string;
-	constraints?: {
-		maxLength?: number;
-		minLength?: number;
-		allowedFormats?: string[];
-	};
+  selector: string
+  type: "text" | "image" | "icon" | "link"
+  defaultValue: string
+  constraints?: {
+    maxLength?: number
+    minLength?: number
+    allowedFormats?: string[]
+  }
 }
 ```
 
@@ -240,13 +240,13 @@ User Interaction → DOM Events → State Updates → Derived Stores → UI Upda
 
 ```typescript
 // Core selection stores
-export const selectedItems = selectionManager.selectedItems;
-export const selectedElements = selectionManager.selectedElements;
-export const activeSelectionType = selectionManager.activeType;
+export const selectedItems = selectionManager.selectedItems
+export const selectedElements = selectionManager.selectedElements
+export const activeSelectionType = selectionManager.activeType
 
 // Derived state
-$: firstSelected = Array.from($selectedElements)[0];
-$: selectedType = firstSelected?.dataset.editable || 'text';
+$: firstSelected = Array.from($selectedElements)[0]
+$: selectedType = firstSelected?.dataset.editable || "text"
 ```
 
 ### Event Propagation Pattern
@@ -309,17 +309,17 @@ src/lib/core/plugins/
 ```typescript
 // Selection configuration
 const selectionConfig: SelectionConfig = {
-	mode: 'single' | 'multiple',
-	allowCrossContext: boolean,
-	styles: Record<SelectionType, SelectionStyle>
-};
+  mode: "single" | "multiple",
+  allowCrossContext: boolean,
+  styles: Record<SelectionType, SelectionStyle>,
+}
 
 // Template configuration
 const templateConfig: TemplateConfig = {
-	preserveStyles: boolean,
-	addEditableMarkers: boolean,
-	generateProps: boolean
-};
+  preserveStyles: boolean,
+  addEditableMarkers: boolean,
+  generateProps: boolean,
+}
 ```
 
 ## 6. Performance Considerations
@@ -386,11 +386,11 @@ const templateConfig: TemplateConfig = {
 
 ```typescript
 // Core imports
-import { SelectionManager } from '$lib/core/selection/SelectionManager';
-import { historyManager } from '$lib/core/history';
+import { SelectionManager } from "$lib/core/selection/SelectionManager"
+import { historyManager } from "$lib/core/history"
 
 // Component imports
-import SelectionOverlay from '$lib/components/SelectionOverlay.svelte';
+import SelectionOverlay from "$lib/components/SelectionOverlay.svelte"
 ```
 
 ### TypeScript Usage
@@ -420,9 +420,9 @@ import SelectionOverlay from '$lib/components/SelectionOverlay.svelte';
 ```typescript
 // Dual environment testing
 projects: [
-	{ name: 'client', environment: 'browser' },
-	{ name: 'server', environment: 'node' }
-];
+  { name: "client", environment: "browser" },
+  { name: "server", environment: "node" },
+]
 ```
 
 ### Development Workflow

@@ -23,7 +23,16 @@
       "Bash(pnpm lint:*)",
       "Bash(npx eslint:*)",
       "Bash(pnpm format:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(pnpm eslint:*)",
+      "Bash(find:*)",
+      "Bash(mv:*)",
+      "Bash(pnpm install:*)",
+      "Bash(node:*)",
+      "Bash(pnpm test:*)",
+      "Bash(curl:*)",
+      "Bash(open test-selection.html)",
+      "Bash(open test-build.html)"
     ],
     "deny": []
   }

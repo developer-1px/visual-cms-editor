@@ -9,66 +9,71 @@
 ### 1. Store → Rune 기반 상태 관리
 
 **기존 방식 (Svelte 4 stores):**
+
 ```typescript
 import { writable, derived } from 'svelte/store';
 const selectionState = writable({...});
 ```
 
 **새로운 방식 (Svelte 5 runes):**
+
 ```typescript
 class SelectionStore {
   private state = $state<SelectionState>({
     selectedElements: new Set(),
     editingElement: null,
     selectionType: new Map(),
-    overlayPosition: null
-  });
-  
-  selectedElements = $derived(Array.from(this.state.selectedElements));
-  isAnySelected = $derived(this.state.selectedElements.size > 0);
+    overlayPosition: null,
+  })
+
+  selectedElements = $derived(Array.from(this.state.selectedElements))
+  isAnySelected = $derived(this.state.selectedElements.size > 0)
 }
 ```
 
 ### 2. DOM 조작 제거
 
 **기존 방식:**
+
 ```typescript
-element.setAttribute('data-selected', 'true');
-element.classList.add('selected');
-element.style.outline = '2px solid blue';
+element.setAttribute("data-selected", "true")
+element.classList.add("selected")
+element.style.outline = "2px solid blue"
 ```
 
 **새로운 방식:**
+
 ```typescript
 // Action에서 $effect 사용
 $effect(() => {
-  const state = selectionStore.getElementState(id);
-  if (!state) return;
-  
+  const state = selectionStore.getElementState(id)
+  if (!state) return
+
   // 데이터 속성은 CSS 스타일링을 위해서만 사용
-  node.setAttribute('data-selected', state.selected.toString());
-  node.setAttribute('data-editing', state.editing.toString());
-});
+  node.setAttribute("data-selected", state.selected.toString())
+  node.setAttribute("data-editing", state.editing.toString())
+})
 ```
 
 ### 3. 반응형 플러그인 시스템
 
 **TextPlugin.svelte.ts:**
+
 ```typescript
 export class ReactiveTextPlugin {
-  private states = $state<Map<string, TextPluginState>>(new Map());
-  
+  private states = $state<Map<string, TextPluginState>>(new Map())
+
   private setupEffects(element: HTMLElement, elementId: string): void {
     $effect(() => {
-      const isEditing = selectionStore.isEditing(elementId);
-      
+      const isEditing = selectionStore.isEditing(elementId)
+
       if (isEditing) {
-        element.contentEditable = 'true';
-        element.focus();
+        element.contentEditable = "true"
+        element.focus()
       } else {
-        element.contentEditable = 'false';
+        element.contentEditable = "false"
       }
-    });
+    })
   }
 }
 ```
@@ -96,18 +101,18 @@ src/lib/
 
 ```svelte
 <script lang="ts">
-  import EditableText from '$lib/components/EditableText.svelte';
-  import EditableImage from '$lib/components/EditableImage.svelte';
+  import EditableText from "$lib/components/EditableText.svelte"
+  import EditableImage from "$lib/components/EditableImage.svelte"
 </script>
 
-<EditableText 
+<EditableText
   id="my-text"
   content="클릭하여 편집"
   maxlength={100}
   class="text-lg"
 />
 
-<EditableImage 
+<EditableImage
   id="my-image"
   src="/image.jpg"
   alt="샘플 이미지"
@@ -118,30 +123,30 @@ src/lib/
 ### 2. 선택 상태 접근
 
 ```typescript
-import { selectionStore } from '$lib/stores/selection.svelte';
+import { selectionStore } from "$lib/stores/selection.svelte"
 
 // 반응형 값 사용
-let selectedCount = $derived(selectionStore.selectedElements.length);
-let isEditing = $derived(selectionStore.editingElement !== null);
+let selectedCount = $derived(selectionStore.selectedElements.length)
+let isEditing = $derived(selectionStore.editingElement !== null)
 
 // 메서드 호출
-selectionStore.selectElement('element-id', 'text');
-selectionStore.startEditing('element-id');
+selectionStore.selectElement("element-id", "text")
+selectionStore.startEditing("element-id")
 ```
 
 ### 3. Custom Action 사용
 
 ```svelte
 <script lang="ts">
-  import { selectable } from '$lib/actions/selectable.svelte';
+  import { selectable } from "$lib/actions/selectable.svelte"
 </script>
 
 <div
   use:selectable={{
-    id: 'custom-element',
-    type: 'custom',
-    onSelect: (element) => console.log('Selected!', element),
-    onEdit: (element) => console.log('Editing!', element)
+    id: "custom-element",
+    type: "custom",
+    onSelect: (element) => console.log("Selected!", element),
+    onEdit: (element) => console.log("Editing!", element),
   }}
 >
   커스텀 선택 가능한 요소

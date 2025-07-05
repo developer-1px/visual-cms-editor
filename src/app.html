@@ -1,57 +1,174 @@
 <!doctype html>
 <html lang="%paraglide.lang%">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.svg" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<title>Visual CMS Editor</title>
-		%sveltekit.head%
-		
-		<!-- Global styles for debugging selection -->
-		<style>
-			/* Force selection styles with highest priority */
-			[data-selected="true"] {
-				outline: 2px solid #3b82f6 !important;
-				outline-offset: 2px !important;
-				background-color: rgba(59, 130, 246, 0.1) !important;
-				position: relative !important;
-				z-index: 1 !important;
-			}
-			
-			[data-editing="true"] {
-				outline: 3px solid #f59e0b !important;
-				outline-offset: 2px !important;
-				background-color: #fef3c7 !important;
-				position: relative !important;
-				z-index: 2 !important;
-			}
-			
-			[data-selected="true"][data-selection-type="image"] {
-				outline-color: #10b981 !important;
-				background-color: rgba(16, 185, 129, 0.1) !important;
-			}
-			
-			/* Debug: make sure we can see data attributes */
-			[data-selected="true"]::before {
-				content: "SELECTED";
-				position: absolute;
-				top: -20px;
-				left: 0;
-				background: #3b82f6;
-				color: white;
-				padding: 2px 6px;
-				font-size: 10px;
-				z-index: 10;
-				pointer-events: none;
-			}
-			
-			[data-editing="true"]::before {
-				content: "EDITING";
-				background: #f59e0b;
-			}
-		</style>
-	</head>
-	<body data-sveltekit-preload-data="hover" class="bg-gray-50">
-		<div style="display: contents">%sveltekit.body%</div>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <link
+      rel="icon"
+      href="%sveltekit.assets%/favicon.svg"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>Visual CMS Editor</title>
+    %sveltekit.head%
+
+    <!-- Global styles for debugging selection -->
+    <style>
+      /* Force selection styles with highest priority */
+      [data-selected="true"] {
+        outline: 2px solid #3b82f6 !important;
+        outline-offset: 2px !important;
+        background-color: rgba(59, 130, 246, 0.1) !important;
+        position: relative !important;
+        z-index: 1 !important;
+      }
+
+      [data-editing="true"] {
+        outline: 3px solid #f59e0b !important;
+        outline-offset: 2px !important;
+        background-color: #fef3c7 !important;
+        position: relative !important;
+        z-index: 2 !important;
+      }
+
+      [data-selected="true"][data-selection-type="image"] {
+        outline-color: #10b981 !important;
+        background-color: rgba(16, 185, 129, 0.1) !important;
+      }
+
+      [data-selected="true"][data-selection-type="icon"] {
+        outline-color: #8b5cf6 !important;
+        background-color: rgba(139, 92, 246, 0.1) !important;
+      }
+
+      [data-selected="true"][data-selection-type="link"] {
+        outline-color: #06b6d4 !important;
+        background-color: rgba(6, 182, 212, 0.1) !important;
+      }
+
+      [data-selected="true"][data-selection-type="repeatable"] {
+        outline-color: #22c55e !important;
+        background-color: rgba(34, 197, 94, 0.1) !important;
+      }
+
+      [data-selected="true"][data-selection-type="section"] {
+        outline-color: #6366f1 !important;
+        background-color: rgba(99, 102, 241, 0.1) !important;
+      }
+
+      /* Debug: show plugin type labels */
+      [data-selected="true"][data-selection-type="text"]::before {
+        content: "TEXT";
+        position: absolute;
+        top: -20px;
+        left: 0;
+        background: #3b82f6;
+        color: white;
+        padding: 2px 6px;
+        font-size: 10px;
+        z-index: 10;
+        pointer-events: none;
+        font-weight: bold;
+        border-radius: 2px;
+      }
+
+      [data-selected="true"][data-selection-type="image"]::before {
+        content: "IMAGE";
+        position: absolute;
+        top: -20px;
+        left: 0;
+        background: #10b981;
+        color: white;
+        padding: 2px 6px;
+        font-size: 10px;
+        z-index: 10;
+        pointer-events: none;
+        font-weight: bold;
+        border-radius: 2px;
+      }
+
+      [data-selected="true"][data-selection-type="icon"]::before {
+        content: "ICON";
+        position: absolute;
+        top: -20px;
+        left: 0;
+        background: #8b5cf6;
+        color: white;
+        padding: 2px 6px;
+        font-size: 10px;
+        z-index: 10;
+        pointer-events: none;
+        font-weight: bold;
+        border-radius: 2px;
+      }
+
+      [data-selected="true"][data-selection-type="link"]::before {
+        content: "LINK";
+        position: absolute;
+        top: -20px;
+        left: 0;
+        background: #06b6d4;
+        color: white;
+        padding: 2px 6px;
+        font-size: 10px;
+        z-index: 10;
+        pointer-events: none;
+        font-weight: bold;
+        border-radius: 2px;
+      }
+
+      [data-selected="true"][data-selection-type="repeatable"]::before {
+        content: "REPEAT";
+        position: absolute;
+        top: -20px;
+        left: 0;
+        background: #22c55e;
+        color: white;
+        padding: 2px 6px;
+        font-size: 10px;
+        z-index: 10;
+        pointer-events: none;
+        font-weight: bold;
+        border-radius: 2px;
+      }
+
+      [data-selected="true"][data-selection-type="section"]::before {
+        content: "SECTION";
+        position: absolute;
+        top: -20px;
+        left: 0;
+        background: #6366f1;
+        color: white;
+        padding: 2px 6px;
+        font-size: 10px;
+        z-index: 10;
+        pointer-events: none;
+        font-weight: bold;
+        border-radius: 2px;
+      }
+
+      /* Editing state labels */
+      [data-editing="true"][data-selection-type="text"]::before {
+        content: "EDITING TEXT";
+        background: #f59e0b;
+      }
+
+      [data-editing="true"][data-selection-type="image"]::before {
+        content: "EDITING IMAGE";
+        background: #f59e0b;
+      }
+
+      [data-editing="true"][data-selection-type="icon"]::before {
+        content: "EDITING ICON";
+        background: #f59e0b;
+      }
+    </style>
+  </head>
+  <body
+    data-sveltekit-preload-data="hover"
+    class="bg-gray-50"
+  >
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
 </html>
