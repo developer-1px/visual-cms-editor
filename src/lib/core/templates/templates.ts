@@ -84,10 +84,12 @@ export const defaultTemplates: Template[] = [
       },
     ],
   },
-  createTemplate(
-    "features-grid",
-    "Features",
-    `
+  {
+    id: "features-grid",
+    name: "Features",
+    description: "3-column feature grid",
+    category: "features",
+    html: `
 			<section class="py-24 border-b border-stone-200">
 				<div class="max-w-6xl mx-auto px-8">
 					<div class="text-center mb-16">
@@ -144,11 +146,49 @@ export const defaultTemplates: Template[] = [
 				</div>
 			</section>
 		`,
-    {
-      description: "3-column feature grid",
-      category: "features",
-    },
-  ),
+    editableElements: [
+      {
+        selector: ".section-title",
+        type: "text",
+        defaultValue: "Features",
+        constraints: { maxLength: 50 },
+      },
+      {
+        selector: ".feature-title",
+        type: "text",
+        defaultValue: "Feature Title",
+        constraints: { maxLength: 30 },
+      },
+      {
+        selector: ".feature-description",
+        type: "text",
+        defaultValue: "Feature description",
+        constraints: { maxLength: 100 },
+      },
+      {
+        selector: '[data-editable="icon"]',
+        type: "icon",
+        defaultValue: "default-icon",
+        constraints: {
+          allowedIcons: ["lightning", "lock", "heart", "star", "check", "arrow-right"],
+        },
+      },
+      {
+        selector: '.feature-link span[data-editable="text"]',
+        type: "text",
+        defaultValue: "자세히 보기",
+        constraints: { maxLength: 30 },
+      },
+      {
+        selector: ".feature-link",
+        type: "link",
+        defaultValue: "#",
+        constraints: {
+          allowedProtocols: ["http", "https", "mailto", "tel"],
+        },
+      },
+    ],
+  },
   {
     id: "cta-simple",
     name: "CTA",

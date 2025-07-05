@@ -43,12 +43,13 @@
   let templateSelectorOpen = false
   let selectedTemplates: Template[] = [
     defaultTemplates[0], // Hero
+    // defaultTemplates[1], // Centered Hero - 제거 (Hero와 겹침)
     defaultTemplates[2], // Features Grid
-    defaultTemplates[7], // Tabbed Showcase (new)
+    defaultTemplates[3], // CTA
     defaultTemplates[4], // Two Column Content
     defaultTemplates[5], // Testimonial
     defaultTemplates[6], // Pricing
-    defaultTemplates[3], // CTA
+    defaultTemplates[7], // Tabbed Showcase
   ]
   let contentContainer: HTMLElement
   let devicePreview: "mobile" | "tablet" | "desktop" | "full" = "full"
