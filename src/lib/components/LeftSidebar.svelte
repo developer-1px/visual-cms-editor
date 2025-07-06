@@ -18,7 +18,7 @@
   // Generate preview HTML with scaled styles
   function generatePreviewHtml(template: Template): string {
     // Simple HTML processing without DOM API for SSR compatibility
-    let html = template?.html || ''
+    let html = template?.html || ""
 
     // Add inline styles for preview scaling if html exists
     if (html) {
@@ -89,9 +89,9 @@
 
       <!-- Section List -->
       <div class="flex-1 space-y-1 overflow-y-auto p-1.5">
-        {#each templates.filter(t => t && t.html) as template, index (`${template.id}-${index}`)}
+        {#each templates.filter((t) => t && t.html) as template, index (`${template.id}-${index}`)}
           <div
-            class="group relative cursor-pointer overflow-hidden rounded border bg-stone-50 transition-all hover:shadow-sm {dragOverIndex ===
+            class="group relative cursor-pointer overflow-hidden rounded border bg-stone-50 transition-all duration-200 hover:shadow-sm hover:scale-[1.02] {dragOverIndex ===
             index
               ? 'border-blue-500'
               : $selectedSectionIndex === index
@@ -126,17 +126,15 @@
 
             <!-- Preview Container -->
             <div
-              class="relative overflow-hidden bg-stone-50"
-              style="height: 50px;"
+              class="relative overflow-hidden bg-stone-50 h-[50px]"
             >
               <div
-                class="preview-wrapper origin-top scale-[0.08] transform"
-                style="width: 1250%; transform-origin: top center; position: absolute; left: 50%; transform: translateX(-50%) scale(0.08);"
+                class="h-auto pointer-events-none select-none origin-top scale-[0.08] transform absolute left-1/2 -translate-x-1/2 [&_*::-webkit-scrollbar]:hidden [&_img]:max-w-full [&_img]:h-auto [&_[class*='h-']]:!h-auto [&_[class*='h-']]:!min-h-0 [&_*]:!text-[6px] [&_*]:!leading-[1.1]"
+                style="width: 1250%;"
               >
                 <div
                   bind:this={sectionPreviews[index]}
-                  class="mx-auto"
-                  style="width: 1200px;"
+                  class="mx-auto w-[1200px]"
                 >
                   <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                   {@html generatePreviewHtml(template)}
@@ -157,48 +155,3 @@
   </div>
 </div>
 
-<style>
-  .preview-wrapper {
-    height: auto;
-    pointer-events: none;
-    user-select: none;
-  }
-
-  /* Hide scrollbars in preview */
-  .preview-wrapper :global(*) {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .preview-wrapper :global(*::-webkit-scrollbar) {
-    display: none;
-  }
-
-  /* Ensure images in preview scale properly */
-  .preview-wrapper :global(img) {
-    max-width: 100%;
-    height: auto;
-  }
-
-  /* Override any fixed heights in preview */
-  .preview-wrapper :global([class*="h-"]),
-  .preview-wrapper :global([class*="min-h-"]) {
-    height: auto !important;
-    min-height: auto !important;
-  }
-
-  /* Smaller text in preview */
-  .preview-wrapper :global(*) {
-    font-size: 6px !important;
-    line-height: 1.1 !important;
-  }
-
-  /* Even smaller section cards */
-  .group {
-    transition: all 0.2s ease;
-  }
-
-  .group:hover {
-    transform: scale(1.02);
-  }
-</style>

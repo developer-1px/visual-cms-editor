@@ -6,7 +6,7 @@
 export interface ElementState {
   selected: boolean
   editing: boolean
-  type: 'text' | 'image' | 'icon' | 'link' | 'repeatable' | 'section' | null
+  type: "text" | "image" | "icon" | "link" | "repeatable" | "section" | null
   elementId: string
 }
 
@@ -15,21 +15,23 @@ class ElementStateManager {
 
   // 요소 상태 가져오기
   getState(elementId: string): ElementState {
-    return this.states.get(elementId) ?? {
-      selected: false,
-      editing: false,
-      type: null,
-      elementId
-    }
+    return (
+      this.states.get(elementId) ?? {
+        selected: false,
+        editing: false,
+        type: null,
+        elementId,
+      }
+    )
   }
 
   // 요소 선택 상태 설정
-  setSelected(elementId: string, selected: boolean, type?: ElementState['type']): void {
+  setSelected(elementId: string, selected: boolean, type?: ElementState["type"]): void {
     const current = this.getState(elementId)
     this.states.set(elementId, {
       ...current,
       selected,
-      type: type ?? current.type
+      type: type ?? current.type,
     })
   }
 
@@ -38,7 +40,7 @@ class ElementStateManager {
     const current = this.getState(elementId)
     this.states.set(elementId, {
       ...current,
-      editing
+      editing,
     })
   }
 
@@ -49,7 +51,7 @@ class ElementStateManager {
         this.states.set(id, {
           ...state,
           selected: false,
-          editing: false
+          editing: false,
         })
       }
     }
@@ -61,7 +63,7 @@ class ElementStateManager {
       if (state.editing) {
         this.states.set(id, {
           ...state,
-          editing: false
+          editing: false,
         })
       }
     }
@@ -69,23 +71,23 @@ class ElementStateManager {
 
   // 선택된 요소들 가져오기
   getSelectedElements(): ElementState[] {
-    return Array.from(this.states.values()).filter(state => state.selected)
+    return Array.from(this.states.values()).filter((state) => state.selected)
   }
 
   // 편집 중인 요소 가져오기
   getEditingElement(): ElementState | null {
-    return Array.from(this.states.values()).find(state => state.editing) ?? null
+    return Array.from(this.states.values()).find((state) => state.editing) ?? null
   }
 
   // 요소 ID 생성 헬퍼
   generateElementId(element: HTMLElement): string {
     if (element.id) return element.id
-    
+
     // data-* 속성 기반 ID 생성
     const type = element.dataset.editable || element.dataset.repeatable
     const tagName = element.tagName.toLowerCase()
     const index = Array.from(element.parentElement?.children || []).indexOf(element)
-    
+
     return `${type || tagName}-${index}-${Date.now()}`
   }
 
@@ -102,14 +104,12 @@ class ElementStateManager {
   // 상태 변경 구독 (반응성)
   subscribe(callback: (states: Map<string, ElementState>) => void): () => void {
     // Svelte 5의 $effect를 사용하여 상태 변경 감지
-    let unsubscribe: (() => void) | null = null
-    
     $effect(() => {
       callback(this.states)
     })
 
     return () => {
-      unsubscribe?.()
+      // cleanup if needed
     }
   }
 
@@ -124,16 +124,15 @@ export const elementStateManager = new ElementStateManager()
 // 편의 함수들
 export function useElementState(element: HTMLElement) {
   const elementId = elementStateManager.ensureElementId(element)
-  
+
   return {
     get state() {
       return elementStateManager.getState(elementId)
     },
-    setSelected: (selected: boolean, type?: ElementState['type']) => 
+    setSelected: (selected: boolean, type?: ElementState["type"]) =>
       elementStateManager.setSelected(elementId, selected, type),
-    setEditing: (editing: boolean) => 
-      elementStateManager.setEditing(elementId, editing),
-    elementId
+    setEditing: (editing: boolean) => elementStateManager.setEditing(elementId, editing),
+    elementId,
   }
 }
 

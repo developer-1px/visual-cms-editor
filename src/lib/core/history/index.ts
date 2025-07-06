@@ -1,4 +1,4 @@
-import { LoroDoc, LoroText } from "loro-crdt"
+import { LoroDoc } from "loro-crdt"
 
 export interface HistoryInfo {
   canUndo: boolean

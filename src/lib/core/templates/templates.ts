@@ -1,5 +1,4 @@
 import type { Template } from "./types"
-import { createTemplate } from "./convention"
 
 export const defaultTemplates: Template[] = [
   {
@@ -105,8 +104,8 @@ export const defaultTemplates: Template[] = [
 							</div>
 							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Fast</h3>
 							<p class="feature-description text-stone-600 mb-4" data-editable="text">Built for speed and performance</p>
-							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="link">
-								<span data-editable="text">자세히 보기</span>
+							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="text">
+								자세히 보기
 								<svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
 								</svg>
@@ -120,8 +119,8 @@ export const defaultTemplates: Template[] = [
 							</div>
 							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Secure</h3>
 							<p class="feature-description text-stone-600 mb-4" data-editable="text">Enterprise-grade security</p>
-							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="link">
-								<span data-editable="text">자세히 보기</span>
+							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="text">
+								자세히 보기
 								<svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
 								</svg>
@@ -135,8 +134,8 @@ export const defaultTemplates: Template[] = [
 							</div>
 							<h3 class="feature-title text-xl font-semibold text-stone-900 mb-3" data-editable="text">Simple</h3>
 							<p class="feature-description text-stone-600 mb-4" data-editable="text">Easy to use and understand</p>
-							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="link">
-								<span data-editable="text">자세히 보기</span>
+							<a href="#" class="feature-link inline-flex items-center text-blue-600 hover:text-blue-700 font-medium" data-editable="text">
+								자세히 보기
 								<svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
 								</svg>
@@ -470,45 +469,45 @@ export const defaultTemplates: Template[] = [
 		`,
     editableElements: [
       {
-        selector: '.showcase-title',
-        type: 'text',
-        defaultValue: '새로운 사용자 경험과 비즈니스 기회를 만들어 보세요.',
-        constraints: { maxLength: 100 }
+        selector: ".showcase-title",
+        type: "text",
+        defaultValue: "새로운 사용자 경험과 비즈니스 기회를 만들어 보세요.",
+        constraints: { maxLength: 100 },
       },
       {
-        selector: '.tab-name',
-        type: 'text',
-        defaultValue: 'Tab Name',
-        constraints: { maxLength: 50 }
+        selector: ".tab-name",
+        type: "text",
+        defaultValue: "Tab Name",
+        constraints: { maxLength: 50 },
       },
       {
         selector: '[data-editable="image"]',
-        type: 'image',
-        defaultValue: '',
+        type: "image",
+        defaultValue: "",
         constraints: {
-          allowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-          maxSize: 5242880
-        }
+          allowedFormats: ["jpg", "jpeg", "png", "webp"],
+          maxSize: 5242880,
+        },
       },
       {
-        selector: '.tab-title',
-        type: 'text',
-        defaultValue: 'Tab Title',
-        constraints: { maxLength: 60 }
+        selector: ".tab-title",
+        type: "text",
+        defaultValue: "Tab Title",
+        constraints: { maxLength: 60 },
       },
       {
-        selector: '.tab-description',
-        type: 'text',
-        defaultValue: 'Tab description content',
-        constraints: { maxLength: 300 }
+        selector: ".tab-description",
+        type: "text",
+        defaultValue: "Tab description content",
+        constraints: { maxLength: 300 },
       },
       {
-        selector: '.tab-link-text',
-        type: 'text',
-        defaultValue: '자세히 보기',
-        constraints: { maxLength: 30 }
-      }
-    ]
+        selector: ".tab-link-text",
+        type: "text",
+        defaultValue: "자세히 보기",
+        constraints: { maxLength: 30 },
+      },
+    ],
   },
 ]
 

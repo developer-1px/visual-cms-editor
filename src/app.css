@@ -192,3 +192,106 @@ body {
 ::-webkit-scrollbar-thumb {
   @apply bg-stone-300 hover:bg-stone-400;
 }
+
+/* Editor Component Styles */
+[data-editable] {
+  @apply cursor-pointer transition-all duration-150 relative;
+}
+
+[data-editable]:hover {
+  @apply outline outline-1 outline-blue-500 outline-offset-1 bg-blue-500/10;
+}
+
+[data-repeatable] {
+  @apply cursor-pointer transition-all duration-150 relative;
+}
+
+[data-repeatable]:hover {
+  @apply outline-dashed outline-2 outline-green-500 outline-offset-4 bg-green-500/5;
+}
+
+/* Template Section Styles */
+.template-section {
+  @apply relative cursor-pointer transition-all duration-200 rounded-lg p-0.5 -m-0.5;
+}
+
+.template-section:hover {
+  @apply outline-dashed outline-2 outline-indigo-500 outline-offset-4 bg-indigo-500/[0.02];
+}
+
+.template-section.selected-section {
+  @apply outline outline-2 outline-indigo-500 outline-offset-4 bg-indigo-500/5 shadow-[0_0_0_1px_rgba(99,102,241,0.1)];
+}
+
+.template-section.selected-section:focus,
+.template-section.selected-section:focus-visible {
+  @apply outline outline-2 outline-indigo-500 outline-offset-4;
+}
+
+/* Prevent section hover when hovering on child elements */
+.template-section:has([data-editable]:hover),
+.template-section:has([data-repeatable]:hover) {
+  @apply outline-none bg-transparent;
+}
+
+/* Don't show section hover styles when a section is selected and hovering over elements */
+.template-section.selected-section:has([data-editable]:hover),
+.template-section.selected-section:has([data-repeatable]:hover) {
+  @apply outline outline-2 outline-indigo-500 bg-indigo-500/5;
+}
+
+/* Selection Styles - Model-driven approach */
+[data-selected="true"] {
+  @apply relative transition-all duration-200;
+}
+
+/* Text selection - 매우 강한 스타일 */
+[data-selected="true"][data-editable="text"] {
+  outline: 3px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  cursor: text;
+  border-radius: 4px;
+}
+
+/* Text elements always preserve whitespace and line breaks */
+[data-editable="text"] {
+  @apply whitespace-pre-wrap;
+}
+
+/* Image selection */
+[data-selected="true"][data-editable="image"] {
+  outline: 3px solid #fb923c !important;
+  outline-offset: 2px !important;
+  background-color: rgba(251, 146, 60, 0.1) !important;
+  border-radius: 4px;
+}
+
+/* Icon selection */
+[data-selected="true"][data-editable="icon"] {
+  outline: 3px solid #a855f7 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(168, 85, 247, 0.1) !important;
+  border-radius: 4px;
+}
+
+/* Link selection */
+[data-selected="true"][data-editable="link"] {
+  outline: 3px solid #06b6d4 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(6, 182, 212, 0.1) !important;
+  border-radius: 4px;
+}
+
+/* Repeatable selection */
+[data-selected="true"][data-repeatable] {
+  outline: 3px solid #10b981 !important;
+  outline-offset: 2px !important;
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  border-radius: 4px;
+}
+
+/* Edit mode */
+[data-editing="true"] {
+  @apply outline outline-[3px] !outline-amber-500 outline-offset-[3px] bg-amber-500/[0.08] animate-pulse rounded;
+}

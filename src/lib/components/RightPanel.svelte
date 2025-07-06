@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Settings, History as HistoryIcon, X, Bug } from "lucide-svelte"
+  import { Settings, History as HistoryIcon, X, Bug, Copy, Check } from "lucide-svelte"
   import Inspector from "./Inspector.svelte"
   import History from "./History.svelte"
   import type { HistoryInfo } from "$lib/core/history"
@@ -13,16 +13,33 @@
   } from "$lib/core/selection/SelectionManager"
   import { historyManager } from "$lib/core/history"
 
-  export let selectedElement: HTMLElement | null = null
-  export let historyInfo: HistoryInfo | null = null
-  export let onHistoryAction: (action: "undo" | "redo") => void
-  export let isOpen = false
+  interface Props {
+    selectedElement: HTMLElement | null
+    historyInfo: HistoryInfo | null
+    onHistoryAction: (action: "undo" | "redo") => void
+    isOpen?: boolean
+  }
+
+  let { selectedElement, historyInfo, onHistoryAction, isOpen = $bindable(false) }: Props = $props()
 
   type Tab = "debug" | "inspector" | "history"
-  let activeTab: Tab = "debug"
+  let activeTab = $state<Tab>("debug")
 
-  $: hasSelection = !!selectedElement
-  $: hasHistory = !!historyInfo
+  let hasSelection = $derived(!!selectedElement)
+  let hasHistory = $derived(!!historyInfo)
+
+  // 복사 완료 상태
+  let copiedStates: Record<string, boolean> = $state({})
+
+  function copyToClipboard(data: unknown, key: string) {
+    const text = JSON.stringify(data, null, 2)
+    navigator.clipboard.writeText(text).then(() => {
+      copiedStates[key] = true
+      setTimeout(() => {
+        copiedStates[key] = false
+      }, 2000)
+    })
+  }
 </script>
 
 {#if isOpen}
@@ -80,10 +97,103 @@
       <div class="flex-1 overflow-y-auto">
         {#if activeTab === "debug"}
           <div class="p-4">
+            <!-- Copy All Button -->
+            <div class="mb-4 flex justify-end">
+              <button
+                class="flex items-center gap-2 rounded bg-stone-100 px-3 py-1.5 text-sm transition-colors hover:bg-stone-200"
+                onclick={() => {
+                  const allData = {
+                    selection: {
+                      selectedItems: Array.from($selectedItems).map((item) => ({
+                        id: item.id,
+                        type: item.type,
+                        context: item.context,
+                        element:
+                          item.element instanceof HTMLElement
+                            ? {
+                                tagName: item.element.tagName,
+                                className: item.element.className,
+                                id: item.element.id || "no-id",
+                                dataAttributes: Object.fromEntries(Object.entries(item.element.dataset)),
+                              }
+                            : item.element,
+                        data: item.data,
+                      })),
+                      selectedSectionIndex: $selectedSectionIndex,
+                      activeType: $activeSelectionType,
+                      activeContext: $activeSelectionContext,
+                      selectionCount: $selectionCount,
+                    },
+                    history: {
+                      canUndo: historyManager.canUndo(),
+                      canRedo: historyManager.canRedo(),
+                      historyLength: historyManager.getHistoryLength(),
+                      currentVersion: historyManager.getCurrentVersion(),
+                    },
+                    config: {
+                      mode: selectionManager.getConfig().mode,
+                      allowCrossContext: selectionManager.getConfig().allowCrossContext,
+                      styles: Object.fromEntries(
+                        Object.entries(selectionManager.getConfig().styles).map(([key, style]) => [
+                          key,
+                          {
+                            color: style.color,
+                            outline: style.outline,
+                          },
+                        ]),
+                      ),
+                    },
+                  };
+                  copyToClipboard(allData, 'all');
+                }}
+              >
+                {#if copiedStates['all']}
+                  <Check class="h-4 w-4 text-green-600" />
+                  <span class="text-green-600">Copied All!</span>
+                {:else}
+                  <Copy class="h-4 w-4" />
+                  <span>Copy All Debug Data</span>
+                {/if}
+              </button>
+            </div>
             <!-- Debug State Display -->
             <div class="space-y-4">
               <div>
-                <h3 class="mb-2 text-sm font-semibold text-stone-700">Selection State</h3>
+                <div class="mb-2 flex items-center justify-between">
+                  <h3 class="text-sm font-semibold text-stone-700">Selection State</h3>
+                  <button
+                    class="flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors hover:bg-stone-200"
+                    onclick={() => copyToClipboard({
+                      selectedItems: Array.from($selectedItems).map((item) => ({
+                        id: item.id,
+                        type: item.type,
+                        context: item.context,
+                        element:
+                          item.element instanceof HTMLElement
+                            ? {
+                                tagName: item.element.tagName,
+                                className: item.element.className,
+                                id: item.element.id || "no-id",
+                                dataAttributes: Object.fromEntries(Object.entries(item.element.dataset)),
+                              }
+                            : item.element,
+                        data: item.data,
+                      })),
+                      selectedSectionIndex: $selectedSectionIndex,
+                      activeType: $activeSelectionType,
+                      activeContext: $activeSelectionContext,
+                      selectionCount: $selectionCount,
+                    }, 'selection')}
+                  >
+                    {#if copiedStates['selection']}
+                      <Check class="h-3 w-3 text-green-600" />
+                      <span class="text-green-600">Copied!</span>
+                    {:else}
+                      <Copy class="h-3 w-3" />
+                      <span>Copy</span>
+                    {/if}
+                  </button>
+                </div>
                 <pre class="overflow-x-auto rounded bg-stone-100 p-3 text-xs">{JSON.stringify(
                     {
                       selectedItems: Array.from($selectedItems).map((item) => ({
@@ -112,7 +222,26 @@
               </div>
 
               <div>
-                <h3 class="mb-2 text-sm font-semibold text-stone-700">History State</h3>
+                <div class="mb-2 flex items-center justify-between">
+                  <h3 class="text-sm font-semibold text-stone-700">History State</h3>
+                  <button
+                    class="flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors hover:bg-stone-200"
+                    onclick={() => copyToClipboard({
+                      canUndo: historyManager.canUndo(),
+                      canRedo: historyManager.canRedo(),
+                      historyLength: historyManager.getHistoryLength(),
+                      currentVersion: historyManager.getCurrentVersion(),
+                    }, 'history')}
+                  >
+                    {#if copiedStates['history']}
+                      <Check class="h-3 w-3 text-green-600" />
+                      <span class="text-green-600">Copied!</span>
+                    {:else}
+                      <Copy class="h-3 w-3" />
+                      <span>Copy</span>
+                    {/if}
+                  </button>
+                </div>
                 <pre class="overflow-x-auto rounded bg-stone-100 p-3 text-xs">{JSON.stringify(
                     {
                       canUndo: historyManager.canUndo(),
@@ -126,7 +255,33 @@
               </div>
 
               <div>
-                <h3 class="mb-2 text-sm font-semibold text-stone-700">Selection Manager Config</h3>
+                <div class="mb-2 flex items-center justify-between">
+                  <h3 class="text-sm font-semibold text-stone-700">Selection Manager Config</h3>
+                  <button
+                    class="flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors hover:bg-stone-200"
+                    onclick={() => copyToClipboard({
+                      mode: selectionManager.getConfig().mode,
+                      allowCrossContext: selectionManager.getConfig().allowCrossContext,
+                      styles: Object.fromEntries(
+                        Object.entries(selectionManager.getConfig().styles).map(([key, style]) => [
+                          key,
+                          {
+                            color: style.color,
+                            outline: style.outline,
+                          },
+                        ]),
+                      ),
+                    }, 'config')}
+                  >
+                    {#if copiedStates['config']}
+                      <Check class="h-3 w-3 text-green-600" />
+                      <span class="text-green-600">Copied!</span>
+                    {:else}
+                      <Copy class="h-3 w-3" />
+                      <span>Copy</span>
+                    {/if}
+                  </button>
+                </div>
                 <pre class="overflow-x-auto rounded bg-stone-100 p-3 text-xs">{JSON.stringify(
                     {
                       mode: selectionManager.getConfig().mode,

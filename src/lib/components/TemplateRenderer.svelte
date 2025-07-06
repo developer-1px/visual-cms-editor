@@ -14,7 +14,7 @@
     if (!template?.html) {
       return ""
     }
-    
+
     const parser = new DOMParser()
     const doc = parser.parseFromString(template.html, "text/html")
     const body = doc.body

@@ -74,8 +74,17 @@ export function selectable(node: HTMLElement, options: SelectableOptions) {
     console.log("Applying state to element:", id, state)
 
     // Update data attributes based on state
-    node.setAttribute("data-selected", state.selected.toString())
-    node.setAttribute("data-editing", state.editing.toString())
+    if (state.selected) {
+      node.setAttribute("data-selected", "true")
+    } else {
+      node.removeAttribute("data-selected")
+    }
+    
+    if (state.editing) {
+      node.setAttribute("data-editing", "true")
+    } else {
+      node.removeAttribute("data-editing")
+    }
     // data-editable already contains the type information
 
     // Apply attributes from state

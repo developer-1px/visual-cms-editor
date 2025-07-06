@@ -1,19 +1,25 @@
 <script lang="ts">
   import { Copy, Trash2, Edit2, Type, FileText } from "lucide-svelte"
 
-  export let selectedElement: HTMLElement | null = null
+  interface Props {
+    selectedElement: HTMLElement | null
+  }
 
-  $: selectedType = selectedElement?.dataset.editable || ""
-  $: hasSelection = !!selectedElement
-  $: elementInfo = selectedElement
-    ? {
-        tag: selectedElement.tagName.toLowerCase(),
+  let { selectedElement }: Props = $props()
+
+  let selectedType = $derived(selectedElement?.dataset.editable || "")
+  let hasSelection = $derived(!!selectedElement)
+  let elementInfo = $derived(
+    selectedElement
+      ? {
+          tag: selectedElement.tagName.toLowerCase(),
         content: selectedElement.textContent || "",
         maxLength: selectedElement.dataset.maxLength,
         classes: Array.from(selectedElement.classList).join(" "),
         type: selectedType,
       }
     : null
+  )
 
   function copyElement() {
     if (!selectedElement) return

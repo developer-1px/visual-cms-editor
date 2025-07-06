@@ -1,4 +1,5 @@
 import { writable, derived, get, type Writable, type Readable } from "svelte/store"
+import { generateElementId } from "../utils/uuid"
 
 // Selection types
 export type SelectionType = "section" | "repeatable" | "text" | "image" | "icon" | "link"
@@ -161,7 +162,7 @@ export class SelectionManager {
     options: { multi?: boolean; id?: string } = {},
   ): string {
     const config = get(this.config)
-    const items = get(this.items)
+    const currentItems = get(this.items)
 
     // Generate ID
     const id = options.id || this.generateId(element, type, context)
@@ -171,7 +172,7 @@ export class SelectionManager {
       this.clear()
     } else if (!config.allowCrossContext) {
       // Clear items from different contexts
-      const currentContext = Array.from(items.values())[0]?.context
+      const currentContext = Array.from(currentItems.values())[0]?.context
       if (currentContext && currentContext !== context) {
         this.clear()
       }
@@ -180,11 +181,10 @@ export class SelectionManager {
     // Create selection item
     const item: SelectionItem = { id, type, element, context, data }
 
-    // Update store
-    this.items.update((items) => {
-      items.set(id, item)
-      return new Map(items)
-    })
+    // Update store - create completely new Map for proper reactivity
+    const newItems = new Map(get(this.items))
+    newItems.set(id, item)
+    this.items.set(newItems)
 
     // Apply styles if element is HTMLElement
     if (element instanceof HTMLElement) {
@@ -199,8 +199,8 @@ export class SelectionManager {
 
   // Deselect an item
   public deselect(id: string): boolean {
-    const items = get(this.items)
-    const item = items.get(id)
+    const currentItems = get(this.items)
+    const item = currentItems.get(id)
 
     if (!item) return false
 
@@ -209,11 +209,10 @@ export class SelectionManager {
       this.removeStyles(item.element)
     }
 
-    // Update store
-    this.items.update((items) => {
-      items.delete(id)
-      return new Map(items)
-    })
+    // Update store - create completely new Map for proper reactivity
+    const newItems = new Map(currentItems)
+    newItems.delete(id)
+    this.items.set(newItems)
 
     // Trigger callback
     this.onSelectionChange?.(get(this.selectedItems))
@@ -303,15 +302,12 @@ export class SelectionManager {
     if (typeof element === "number") {
       return `${context}-${type}-${element}`
     }
-    // For HTMLElements, try to use existing ID or generate one
-    if (element.id) {
+    // For HTMLElements, try to use existing ID or generate UUID-based one
+    if (element.id && !element.id.startsWith('element-')) {
       return element.id
     }
-    // Generate based on element properties
-    const tag = element.tagName.toLowerCase()
-    const className = element.className.split(" ")[0] || "element"
-    const index = Array.from(element.parentElement?.children || []).indexOf(element)
-    return `${context}-${type}-${tag}-${className}-${index}`
+    // Generate UUID-based ID
+    return generateElementId(`${context}-${type}`)
   }
 
   private findId(element: HTMLElement | number, type?: SelectionType, context?: SelectionContext): string | null {
@@ -334,16 +330,54 @@ export class SelectionManager {
     const config = get(this.config)
     const style = config.styles[type]
 
-    // DOM 조작 없음 - 순수한 상태 관리만 사용
-    // 실제 스타일링은 Svelte 컴포넌트에서 반응적으로 처리
-    
-    // 콜백으로 상태 변경 알림 (DOM 조작 없음)
+    // DOM에 선택 상태 적용
+    if (selected) {
+      element.setAttribute('data-selected', 'true')
+      console.log("✅ Applied data-selected=true to", {
+        tag: element.tagName,
+        id: element.id,
+        classes: element.className,
+        type
+      })
+    } else {
+      element.removeAttribute('data-selected')
+      console.log("🗑️ Removed data-selected from", {
+        tag: element.tagName,
+        id: element.id,
+        classes: element.className,
+        type
+      })
+    }
+
+    // 콜백으로 상태 변경 알림
     this.onStyleApply?.(element, style, selected)
   }
 
   private removeStyles(element: HTMLElement): void {
-    // DOM 조작 없음 - 순수한 상태 관리만
-    // 실제 스타일 제거는 Svelte 컴포넌트에서 반응적으로 처리
+    // DOM에서 선택 상태 제거
+    element.removeAttribute('data-selected')
+    console.log("🗑️ Removed data-selected from", {
+      tag: element.tagName,
+      id: element.id,
+      classes: element.className
+    })
+
+    // 콜백으로 제거 알림
+    const config = get(this.config)
+    const type = this.getElementType(element)
+    if (type) {
+      this.onStyleApply?.(element, config.styles[type], false)
+    }
+  }
+
+  private getElementType(element: HTMLElement): SelectionType | null {
+    const items = get(this.items)
+    for (const item of items.values()) {
+      if (item.element === element) {
+        return item.type
+      }
+    }
+    return null
   }
 }
 

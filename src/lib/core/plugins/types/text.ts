@@ -118,9 +118,8 @@ export const textPlugin: EditablePlugin = {
     // Set contenteditable with plaintext-only to prevent HTML formatting
     element.setAttribute("contenteditable", "plaintext-only")
     element.setAttribute("data-editing", "true")
-    
-    // Set white-space to pre-wrap to preserve line breaks and spaces
-    element.style.whiteSpace = "pre-wrap"
+
+    // white-space: pre-wrap은 이제 CSS에서 항상 적용됨
 
     // Focus the element
     element.focus()
@@ -140,9 +139,8 @@ export const textPlugin: EditablePlugin = {
     // Remove contenteditable
     element.removeAttribute("contenteditable")
     element.removeAttribute("data-editing")
-    
-    // Remove white-space style
-    element.style.whiteSpace = ""
+
+    // white-space는 CSS에서 항상 적용되므로 제거하지 않음
 
     // Remove event listeners
     element.removeEventListener("blur", this.handleBlur.bind(this))

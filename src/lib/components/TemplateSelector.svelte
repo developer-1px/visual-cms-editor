@@ -81,7 +81,7 @@
         <!-- Templates -->
         <div class="flex-1 overflow-y-auto p-6">
           <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {#each filteredTemplates.filter(t => t && t.id) as template, index (`template-${template.id}-${index}`)}
+            {#each filteredTemplates.filter((t) => t && t.id) as template, index (`template-${template.id}-${index}`)}
               <div
                 class="animate-fade-in bg-white shadow-sm transition-all hover:shadow-md"
                 style="animation-delay: {index * 0.05}s"

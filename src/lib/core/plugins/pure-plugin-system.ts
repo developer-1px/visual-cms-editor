@@ -3,7 +3,7 @@
  * Core level - 상태와 로직만 관리
  */
 
-import type { ElementType } from '$lib/core/state/element-state.svelte.ts'
+import type { ElementType } from "$lib/core/state/element-state.svelte.ts"
 
 export interface PurePluginConfig {
   type: ElementType
@@ -15,12 +15,12 @@ export interface PurePluginConfig {
 
 export interface PurePlugin {
   config: PurePluginConfig
-  
+
   // 순수한 데이터 처리 메서드들 (DOM 없음)
   validateData?(data: unknown, constraints?: Record<string, unknown>): { valid: boolean; message?: string }
   transformData?(data: unknown): unknown
   getDefaultValue?(): unknown
-  
+
   // 상태 변경 이벤트 핸들러들
   onSelect?(elementId: string, data?: Record<string, unknown>): void
   onDeselect?(elementId: string): void
@@ -31,7 +31,7 @@ export interface PurePlugin {
 
 class PurePluginManager {
   private plugins = new Map<ElementType, PurePlugin>()
-  private eventHandlers = new Map<string, Array<(...args: any[]) => void>>()
+  private eventHandlers = new Map<string, Array<(...args: unknown[]) => void>>()
 
   // 플러그인 등록
   register(plugin: PurePlugin): void {
@@ -49,7 +49,11 @@ class PurePluginManager {
   }
 
   // 데이터 검증 (순수 함수)
-  validateData(type: ElementType, data: unknown, constraints?: Record<string, unknown>): { valid: boolean; message?: string } {
+  validateData(
+    type: ElementType,
+    data: unknown,
+    constraints?: Record<string, unknown>,
+  ): { valid: boolean; message?: string } {
     const plugin = this.plugins.get(type)
     if (plugin?.validateData) {
       return plugin.validateData(data, constraints)
@@ -79,42 +83,42 @@ class PurePluginManager {
   emitSelect(type: ElementType, elementId: string, data?: Record<string, unknown>): void {
     const plugin = this.plugins.get(type)
     plugin?.onSelect?.(elementId, data)
-    this.emit('element:select', { type, elementId, data })
+    this.emit("element:select", { type, elementId, data })
   }
 
   emitDeselect(type: ElementType, elementId: string): void {
     const plugin = this.plugins.get(type)
     plugin?.onDeselect?.(elementId)
-    this.emit('element:deselect', { type, elementId })
+    this.emit("element:deselect", { type, elementId })
   }
 
   emitEditStart(type: ElementType, elementId: string): void {
     const plugin = this.plugins.get(type)
     plugin?.onEditStart?.(elementId)
-    this.emit('element:editStart', { type, elementId })
+    this.emit("element:editStart", { type, elementId })
   }
 
   emitEditStop(type: ElementType, elementId: string): void {
     const plugin = this.plugins.get(type)
     plugin?.onEditStop?.(elementId)
-    this.emit('element:editStop', { type, elementId })
+    this.emit("element:editStop", { type, elementId })
   }
 
   emitDataChange(type: ElementType, elementId: string, newData: unknown, oldData?: unknown): void {
     const plugin = this.plugins.get(type)
     plugin?.onDataChange?.(elementId, newData, oldData)
-    this.emit('element:dataChange', { type, elementId, newData, oldData })
+    this.emit("element:dataChange", { type, elementId, newData, oldData })
   }
 
   // 이벤트 시스템 (DOM 없음)
-  on(event: string, handler: (...args: any[]) => void): void {
+  on(event: string, handler: (...args: unknown[]) => void): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, [])
     }
     this.eventHandlers.get(event)!.push(handler)
   }
 
-  off(event: string, handler: (...args: any[]) => void): void {
+  off(event: string, handler: (...args: unknown[]) => void): void {
     const handlers = this.eventHandlers.get(event)
     if (handlers) {
       const index = handlers.indexOf(handler)
@@ -124,10 +128,10 @@ class PurePluginManager {
     }
   }
 
-  private emit(event: string, data: any): void {
+  private emit(event: string, data: unknown): void {
     const handlers = this.eventHandlers.get(event)
     if (handlers) {
-      handlers.forEach(handler => handler(data))
+      handlers.forEach((handler) => handler(data))
     }
   }
 

@@ -9,13 +9,13 @@ export { SelectionActionManager, selectionActionManager } from "./SelectionActio
 // 핸들러들
 export { ImageActionHandler } from "./handlers/ImageActionHandler"
 export { RepeatableActionHandler } from "./handlers/RepeatableActionHandler"
-export { TextActionHandler } from "./handlers/TextActionHandler"
+export { ModelTextActionHandler } from "./handlers/ModelTextActionHandler"
 
 // 모든 핸들러를 자동으로 등록하는 함수
 import { selectionActionManager } from "./SelectionActionManager"
 import { ImageActionHandler } from "./handlers/ImageActionHandler"
 import { RepeatableActionHandler } from "./handlers/RepeatableActionHandler"
-import { TextActionHandler } from "./handlers/TextActionHandler"
+import { ModelTextActionHandler } from "./handlers/ModelTextActionHandler"
 
 /**
  * 모든 기본 핸들러들을 등록하는 초기화 함수
@@ -26,7 +26,7 @@ export function initializeActionHandlers(): void {
   // 기본 핸들러들 등록
   selectionActionManager.registerHandler(new ImageActionHandler())
   selectionActionManager.registerHandler(new RepeatableActionHandler())
-  selectionActionManager.registerHandler(new TextActionHandler())
+  selectionActionManager.registerHandler(new ModelTextActionHandler())
 
   console.log("[Actions] Action handlers initialized successfully")
 

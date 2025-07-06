@@ -3,7 +3,7 @@
  * Core level - Svelte 5 반응성만 사용
  */
 
-export type ElementType = 'text' | 'image' | 'icon' | 'link' | 'repeatable' | 'section'
+export type ElementType = "text" | "image" | "icon" | "link" | "repeatable" | "section"
 
 export interface ElementState {
   id: string
@@ -29,7 +29,7 @@ class PureElementStateManager {
     selectedIds: new Set(),
     editingId: null,
     activeType: null,
-    multiSelect: false
+    multiSelect: false,
   })
 
   // 요소 등록 (DOM 없이 순수한 ID와 타입만)
@@ -40,7 +40,7 @@ class PureElementStateManager {
       selected: false,
       editing: false,
       visible: true,
-      data: initialData
+      data: initialData,
     })
   }
 
@@ -171,7 +171,7 @@ class PureElementStateManager {
 
   getSelectedElements(): ElementState[] {
     return Array.from(this.selection.selectedIds)
-      .map(id => this.elements.get(id))
+      .map((id) => this.elements.get(id))
       .filter((el): el is ElementState => el !== undefined)
   }
 
@@ -186,7 +186,7 @@ class PureElementStateManager {
       isEmpty: this.selection.selectedIds.size === 0,
       activeType: this.selection.activeType,
       isMultiSelect: this.selection.multiSelect,
-      editingId: this.selection.editingId
+      editingId: this.selection.editingId,
     }
   }
 
@@ -219,6 +219,6 @@ export function useElementState(id: string) {
     deselect: () => elementStateManager.deselect(id),
     startEdit: () => elementStateManager.startEdit(id),
     stopEdit: () => elementStateManager.stopEdit(id),
-    updateData: (data: Record<string, unknown>) => elementStateManager.updateData(id, data)
+    updateData: (data: Record<string, unknown>) => elementStateManager.updateData(id, data),
   }
 }

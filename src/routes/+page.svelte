@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte"
+  import { get } from "svelte/store"
   import {
     Edit2,
     Mouse,
@@ -17,10 +18,12 @@
   import RightPanel from "$lib/components/RightPanel.svelte"
   import LeftSidebar from "$lib/components/LeftSidebar.svelte"
   import TemplateSelector from "$lib/components/TemplateSelector.svelte"
-  import TemplateRenderer from "$lib/components/TemplateRenderer.svelte"
+  import TemplateRendererV3 from "$lib/components/TemplateRendererV3.svelte"
   import MockHeader from "$lib/components/MockHeader.svelte"
   import MockFooter from "$lib/components/MockFooter.svelte"
   import SelectionOverlay from "$lib/components/SelectionOverlay.svelte"
+  import HotkeyProvider from "$lib/components/HotkeyProvider.svelte"
+  import HotkeyHints from "$lib/components/HotkeyHints.svelte"
   import type { Template } from "$lib/core/templates/types"
   import { defaultTemplates } from "$lib/core/templates/templates"
   import {
@@ -76,38 +79,84 @@
 
   function handleElementClick(e: MouseEvent) {
     const target = e.target as HTMLElement
-    const editable = target.closest("[data-editable]") as HTMLElement
-    const repeatable = target.closest("[data-repeatable]") as HTMLElement
+    const currentTarget = e.currentTarget as HTMLElement
 
-    // Handle repeatable elements first
-    if (repeatable && !editable) {
-      e.stopPropagation()
+    console.log("🔵 Simple handleElementClick called:", {
+      target: target?.tagName || "null",
+      targetId: target?.id || "null",
+      currentTarget: currentTarget?.tagName || "null",
+      currentTargetId: currentTarget?.id || "null",
+      hasCurrentTarget: !!currentTarget,
+    })
 
-      if (e.shiftKey || e.metaKey || e.ctrlKey) {
-        toggleSelection(repeatable)
-      } else {
-        deselectAll()
-        selectElement(repeatable, false)
-      }
+    // Use currentTarget if available, otherwise use target
+    const elementToCheck = currentTarget || target
+    if (!elementToCheck) {
+      console.log("🔴 No element to check")
       return
     }
 
+    const editable =
+      (elementToCheck.closest("[data-editable]") as HTMLElement) ||
+      (elementToCheck.hasAttribute("data-editable") ? elementToCheck : null)
+    const repeatable = elementToCheck.closest("[data-repeatable]") as HTMLElement
+
+    console.log("🔍 Found elements:", {
+      editable: editable
+        ? {
+            tag: editable.tagName,
+            id: editable.id,
+            classes: editable.className,
+            editableType: editable.getAttribute("data-editable"),
+          }
+        : null,
+      repeatable: repeatable
+        ? {
+            tag: repeatable.tagName,
+            classes: repeatable.className,
+          }
+        : null,
+    })
+
+    // Clear previous selections
+    selectionManager.clear()
+
+    // Simple selection: add to store
     if (editable) {
+      console.log("🟢 Selecting editable element", {
+        id: editable.id,
+        tag: editable.tagName,
+        type: editable.getAttribute("data-editable"),
+      })
       e.stopPropagation()
 
-      if (e.shiftKey || e.metaKey || e.ctrlKey) {
-        toggleSelection(editable)
-      } else {
-        if ($selectedElements.has(editable) && $selectedElements.size === 1) {
-          // Use plugin system for handling clicks on already selected elements
-          editablePluginManager.handleClick(editable, e)
-        } else {
-          deselectAll()
-          selectElement(editable, false)
-        }
-      }
+      // Add to selection store - this is what triggers the overlay!
+      const editableType = (editable.getAttribute("data-editable") as SelectionType) || "text"
+      const selectionId = selectionManager.select(editable, editableType, "canvas")
+      console.log("✅ Selection result:", {
+        selectionId,
+        selectedCount: get(selectionCount),
+        selectedElements: Array.from(get(selectedElements)),
+        isSelectionEmpty: get(isSelectionEmpty),
+        elementInStore: get(selectedElements).has(editable),
+      })
+    } else if (repeatable) {
+      console.log("🟢 Selecting repeatable element")
+      e.stopPropagation()
+
+      // Add to selection store
+      const selectionId = selectionManager.select(repeatable, "repeatable", "canvas")
+      console.log("✅ Selection result (repeatable):", {
+        selectionId,
+        selectedCount: get(selectionCount),
+        selectedElements: Array.from(get(selectedElements)),
+        isSelectionEmpty: get(isSelectionEmpty),
+      })
+    } else {
+      console.log("🔴 No editable or repeatable element found")
     }
   }
+
 
   function selectElement(element: HTMLElement, multi = false) {
     // Determine selection type
@@ -121,14 +170,9 @@
     // Use the unified selection manager
     selectionManager.select(element, type, "canvas", undefined, { multi })
 
-    // Apply visual selection feedback
-    element.setAttribute("data-selected", "true")
-    element.setAttribute("data-selection-type", type)
-
     // Initialize element with plugin system if it's editable
     if (element.dataset.editable) {
       editablePluginManager.initElement(element)
-      editablePluginManager.applyStyles(element, true)
     }
 
     // Edit mode visual styles are now handled by the contenteditable CSS rules
@@ -155,29 +199,6 @@
     }
   }
 
-  function toggleSelection(element: HTMLElement) {
-    // Determine selection type
-    let type: SelectionType = "text"
-    if (element.hasAttribute("data-repeatable")) {
-      type = "repeatable"
-    } else if (element.dataset.editable) {
-      type = element.dataset.editable as SelectionType
-    }
-
-    // Use the unified selection manager's toggle method
-    const result = selectionManager.toggle(element, type, "canvas")
-
-    // Apply or remove visual feedback based on selection state
-    if (result.selected) {
-      element.setAttribute("data-selected", "true")
-      element.setAttribute("data-selection-type", type)
-    } else {
-      element.removeAttribute("data-selected")
-      element.removeAttribute("data-selection-type")
-    }
-
-    // Overlay position is now handled by the SelectionOverlay component
-  }
 
   function handleDocumentClick(e: MouseEvent) {
     const target = e.target as HTMLElement
@@ -216,17 +237,6 @@
       isEditing,
       selectedCount: $selectedElements.size,
       caller: new Error().stack?.split("\n").slice(1, 3).join(" -> "),
-    })
-
-    // Clear visual styles from all selected elements
-    $selectedElements.forEach((element) => {
-      // Remove plugin styles if it's an editable element
-      if (element.dataset.editable) {
-        editablePluginManager.removeStyles(element)
-      }
-      // Remove selection data attributes
-      element.removeAttribute("data-selected")
-      element.removeAttribute("data-selection-type")
     })
 
     // Use the unified selection manager to clear
@@ -285,7 +295,7 @@
     switch (action) {
       case "edit":
         if (firstSelected) {
-          editablePluginManager.handleDoubleClick(firstSelected, new MouseEvent('dblclick'))
+          editablePluginManager.handleDoubleClick(firstSelected, new MouseEvent("dblclick"))
         }
         break
       case "copy":
@@ -335,58 +345,7 @@
     }
   }
 
-  function handleKeydown(e: KeyboardEvent) {
-    const target = e.target as HTMLElement
-    console.log("🔵 handleKeydown:", {
-      key: e.key,
-      isEditing,
-      firstSelected: firstSelected?.tagName,
-      selectedType,
-      target: target.tagName,
-      targetContentEditable: target.hasAttribute("contenteditable"),
-      targetId: target.id || target.className || "no-id",
-    })
-
-    // In edit mode, let all keys work normally in contenteditable
-    if (isEditing && (target.hasAttribute("contenteditable") || target.getAttribute("contenteditable") === "plaintext-only")) {
-      // Don't interfere with typing in contenteditable
-      return
-    }
-
-    if (e.key === "Escape") {
-      if (isEditing && firstSelected) {
-        // Stop editing - remove contenteditable
-        firstSelected.removeAttribute("contenteditable")
-        firstSelected.removeAttribute("data-editing")
-        firstSelected.blur()
-      } else {
-        deselectAll()
-      }
-      // Clean up any stray contenteditable attributes
-      cleanupContentEditable()
-    } else if (e.key === "Enter" && !isEditing && firstSelected && selectedType === "text") {
-      // Use plugin system to start editing
-      editablePluginManager.handleDoubleClick(firstSelected, new MouseEvent('dblclick'))
-    } else if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
-      e.preventDefault()
-      undo()
-    } else if ((e.metaKey || e.ctrlKey) && (e.key === "Z" || (e.shiftKey && e.key === "z"))) {
-      e.preventDefault()
-      redo()
-    } else if ((e.metaKey || e.ctrlKey) && e.key === "c" && !isEditing) {
-      e.preventDefault()
-      handleCopyShortcut()
-    } else if ((e.metaKey || e.ctrlKey) && e.key === "x" && !isEditing) {
-      e.preventDefault()
-      handleCutShortcut()
-    } else if ((e.metaKey || e.ctrlKey) && e.key === "v" && !isEditing) {
-      e.preventDefault()
-      handlePasteShortcut()
-    } else if ((e.key === "Delete" || e.key === "Backspace") && !isEditing) {
-      e.preventDefault()
-      handleDeleteShortcut()
-    }
-  }
+  // 키보드 이벤트는 이제 HotkeyProvider에서 처리됨
 
   // 🚀 새로운 전략 패턴 기반 핸들러들 - 분기 로직 제거!
   async function handleCopyShortcut() {
@@ -409,15 +368,6 @@
     }
   }
 
-  async function handlePasteShortcut() {
-    if (firstSelected) {
-      try {
-        await selectionActionManager.executeAction("paste", firstSelected, selectedType)
-      } catch (error) {
-        console.error("Paste action failed:", error)
-      }
-    }
-  }
 
   async function handleDeleteShortcut() {
     console.log("Delete shortcut triggered", { firstSelected, selectedType, isEditing })
@@ -430,12 +380,6 @@
     }
   }
 
-  function cleanupContentEditable() {
-    // Remove all contenteditable attributes from the page
-    document.querySelectorAll("[contenteditable]").forEach((element) => {
-      ;(element as HTMLElement).removeAttribute("contenteditable")
-    })
-  }
 
   function undo() {
     if (canUndo) {
@@ -506,12 +450,6 @@
     // Use the unified selection manager for section selection
     // This will be available to both sidebar and canvas
     selectionManager.select(index, "section", "canvas", selectedTemplates[index])
-
-    // Scroll to the selected section
-    const sectionElements = contentContainer?.querySelectorAll(".template-section")
-    if (sectionElements && sectionElements[index]) {
-      sectionElements[index].scrollIntoView({ behavior: "smooth", block: "start" })
-    }
   }
 
   function handleReorderSections(fromIndex: number, toIndex: number) {
@@ -593,13 +531,70 @@
     }
   }
 
+  function handleImageChanged(e: Event) {
+    console.log("🖼️ Image changed event received")
+    const customEvent = e as CustomEvent
+    const element = customEvent.detail?.element
+    const src = customEvent.detail?.src
+    const alt = customEvent.detail?.alt
+
+    if (element && contentContainer) {
+      // Update the image element
+      const img = element.querySelector("img")
+      if (img && src) {
+        img.src = src
+        if (alt) img.alt = alt
+      }
+
+      // Save structural state for history
+      historyManager.saveStructuralState(contentContainer)
+      updateHistoryState()
+    }
+  }
+
+  function handleIconChanged(e: Event) {
+    console.log("🎯 Icon changed event received")
+    const customEvent = e as CustomEvent
+    const element = customEvent.detail?.element
+    const pathData = customEvent.detail?.pathData
+
+    if (element && contentContainer && pathData) {
+      // Update the icon element
+      const path = element.querySelector("path")
+      if (path) {
+        path.setAttribute("d", pathData)
+      }
+
+      // Save structural state for history
+      historyManager.saveStructuralState(contentContainer)
+      updateHistoryState()
+    }
+  }
+
+  function handleLinkChanged(e: Event) {
+    console.log("🔗 Link changed event received")
+    const customEvent = e as CustomEvent
+    const element = customEvent.detail?.element
+    const href = customEvent.detail?.href
+    const text = customEvent.detail?.text
+
+    if (element && contentContainer) {
+      // Update the link element
+      if (href !== undefined) element.href = href
+      if (text !== undefined) element.textContent = text
+
+      // Save structural state for history
+      historyManager.saveStructuralState(contentContainer)
+      updateHistoryState()
+    }
+  }
+
   onMount(() => {
     // 🚀 액션 핸들러 시스템 초기화
     initializeActionHandlers()
 
     document.addEventListener("click", handleDocumentClick)
     document.addEventListener("dblclick", handleDoubleClick)
-    document.addEventListener("keydown", handleKeydown)
 
     // RepeatableActionHandler 이벤트 리스너 추가
     document.addEventListener("saveHistoryState", handleSaveHistoryState)
@@ -607,8 +602,11 @@
     document.addEventListener("elementPasted", handleElementPasted)
     document.addEventListener("needsHydration", handleNeedsHydration)
 
-    // Text plugin 이벤트 리스너 추가
+    // Plugin 이벤트 리스너 추가
     document.addEventListener("textChanged", handleTextChanged)
+    document.addEventListener("imageChanged", handleImageChanged)
+    document.addEventListener("iconChanged", handleIconChanged)
+    document.addEventListener("linkChanged", handleLinkChanged)
 
     updateHistoryState()
 
@@ -627,370 +625,279 @@
 
       document.removeEventListener("click", handleDocumentClick)
       document.removeEventListener("dblclick", handleDoubleClick)
-      document.removeEventListener("keydown", handleKeydown)
       document.removeEventListener("saveHistoryState", handleSaveHistoryState)
       document.removeEventListener("updateHistoryState", handleUpdateHistoryState)
       document.removeEventListener("elementPasted", handleElementPasted)
       document.removeEventListener("needsHydration", handleNeedsHydration)
       document.removeEventListener("textChanged", handleTextChanged)
+      document.removeEventListener("imageChanged", handleImageChanged)
+      document.removeEventListener("iconChanged", handleIconChanged)
+      document.removeEventListener("linkChanged", handleLinkChanged)
     }
   })
 </script>
 
-<!-- Top Bar -->
-<div class="fixed top-0 right-0 left-0 z-30 flex h-12 items-center border-b border-stone-200 bg-white px-2">
-  <!-- Left Section -->
-  <div class="flex items-center gap-2">
-    <!-- Toggle Left Sidebar -->
-    <button
-      class="icon-btn {leftSidebarOpen ? 'bg-stone-200' : ''}"
-      onclick={() => (leftSidebarOpen = !leftSidebarOpen)}
-      title="{leftSidebarOpen ? 'Hide' : 'Show'} sections"
-    >
-      <svg
-        class="h-4 w-4 text-stone-600 transition-transform {leftSidebarOpen ? '' : 'rotate-180'}"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-      >
-        <path
-          d="M15 19l-7-7 7-7"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </svg>
-    </button>
-  </div>
-
-  <!-- Center Section - All Controls -->
-  <div
-    class="flex flex-1 justify-center"
-    style="margin-left: {leftSidebarOpen ? '140px' : '0'}; margin-right: {rightPanelOpen
-      ? '304px'
-      : '0'}; transition: margin 300ms;"
-  >
+<HotkeyProvider>
+  <!-- Top Bar -->
+  <div class="fixed top-0 right-0 left-0 z-30 flex h-12 items-center border-b border-stone-200 bg-white px-2">
+    <!-- Left Section -->
     <div class="flex items-center gap-2">
-      <!-- Mode Indicator -->
-      <div class="flex items-center gap-0.5 rounded bg-stone-100 p-0.5">
-        <button
-          class="icon-btn {!isEditing ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-          onclick={() => {
-            if (isEditing && firstSelected) {
-              // Stop editing
-              firstSelected.removeAttribute("contenteditable")
-              firstSelected.removeAttribute("data-editing")
-              firstSelected.blur()
-            }
-          }}
-          title="Select Mode"
+      <!-- Toggle Left Sidebar -->
+      <button
+        class="icon-btn {leftSidebarOpen ? 'bg-stone-200' : ''}"
+        onclick={() => (leftSidebarOpen = !leftSidebarOpen)}
+        title="{leftSidebarOpen ? 'Hide' : 'Show'} sections"
+      >
+        <svg
+          class="h-4 w-4 text-stone-600 transition-transform {leftSidebarOpen ? '' : 'rotate-180'}"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
         >
-          <Mouse class="h-4 w-4" />
-        </button>
-        <button
-          class="icon-btn {isEditing ? 'bg-amber-500 text-white' : 'text-stone-600'}"
-          onclick={() => {
-            if (firstSelected && selectedType === "text" && !isEditing) {
-              editablePluginManager.handleDoubleClick(firstSelected, new MouseEvent('dblclick'))
-            }
-          }}
-          title={isEditing ? "Editing Text" : "Edit Mode"}
-        >
-          <Edit2 class="h-4 w-4" />
-        </button>
-      </div>
+          <path
+            d="M15 19l-7-7 7-7"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
+    </div>
 
-      <!-- Selection Indicator -->
-      {#if !$isSelectionEmpty && $activeSelectionType}
-        <div
-          class="flex items-center gap-2 px-3 py-1 text-sm {$activeSelectionType === 'repeatable'
-            ? 'bg-green-200 text-green-800'
-            : 'bg-stone-200 text-stone-700'} rounded"
-        >
-          <span class="font-medium">Selection:</span>
-          <span class="capitalize">
-            {$activeSelectionType}
-            {#if $selectionCount > 1}
-              ({$selectionCount})
-            {/if}
-          </span>
+    <!-- Center Section - All Controls -->
+    <div
+      class="flex flex-1 justify-center"
+      style="margin-left: {leftSidebarOpen ? '140px' : '0'}; margin-right: {rightPanelOpen
+        ? '304px'
+        : '0'}; transition: margin 300ms;"
+    >
+      <div class="flex items-center gap-2">
+        <!-- Mode Indicator -->
+        <div class="flex items-center gap-0.5 rounded bg-stone-100 p-0.5">
+          <button
+            class="icon-btn {!isEditing ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+            onclick={() => {
+              if (isEditing && firstSelected) {
+                // Stop editing
+                firstSelected.removeAttribute("contenteditable")
+                firstSelected.removeAttribute("data-editing")
+                firstSelected.blur()
+              }
+            }}
+            title="Select Mode"
+          >
+            <Mouse class="h-4 w-4" />
+          </button>
+          <button
+            class="icon-btn {isEditing ? 'bg-amber-500 text-white' : 'text-stone-600'}"
+            onclick={() => {
+              if (firstSelected && selectedType === "text" && !isEditing) {
+                editablePluginManager.handleDoubleClick(firstSelected, new MouseEvent("dblclick"))
+              }
+            }}
+            title={isEditing ? "Editing Text" : "Edit Mode"}
+          >
+            <Edit2 class="h-4 w-4" />
+          </button>
         </div>
-      {/if}
 
-      <!-- History Group -->
-      <div class="flex items-center gap-0.5 rounded bg-stone-100 p-0.5">
-        <button
-          class="icon-btn disabled:cursor-not-allowed disabled:opacity-50"
-          onclick={undo}
-          disabled={!canUndo}
-          title="Undo"
-        >
-          <Undo2 class="h-4 w-4" />
-        </button>
-        <button
-          class="icon-btn disabled:cursor-not-allowed disabled:opacity-50"
-          onclick={redo}
-          disabled={!canRedo}
-          title="Redo"
-        >
-          <Redo2 class="h-4 w-4" />
-        </button>
-      </div>
+        <!-- Selection Indicator -->
+        {#if !$isSelectionEmpty && $activeSelectionType}
+          <div
+            class="flex items-center gap-2 px-3 py-1 text-sm {$activeSelectionType === 'repeatable'
+              ? 'bg-green-200 text-green-800'
+              : 'bg-stone-200 text-stone-700'} rounded"
+          >
+            <span class="font-medium">Selection:</span>
+            <span class="capitalize">
+              {$activeSelectionType}
+              {#if $selectionCount > 1}
+                ({$selectionCount})
+              {/if}
+            </span>
+          </div>
+        {/if}
 
-      <!-- Device Preview Group -->
-      <div class="flex items-center gap-0.5 rounded bg-stone-100 p-0.5">
-        <button
-          class="icon-btn {devicePreview === 'mobile' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-          onclick={() => (devicePreview = "mobile")}
-          title="Mobile Preview (375px)"
-        >
-          <Smartphone class="h-4 w-4" />
-        </button>
-        <button
-          class="icon-btn {devicePreview === 'tablet' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-          onclick={() => (devicePreview = "tablet")}
-          title="Tablet Preview (768px)"
-        >
-          <Tablet class="h-4 w-4" />
-        </button>
-        <button
-          class="icon-btn {devicePreview === 'desktop' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-          onclick={() => (devicePreview = "desktop")}
-          title="Desktop Preview (1280px)"
-        >
-          <Monitor class="h-4 w-4" />
-        </button>
-        <button
-          class="icon-btn {devicePreview === 'full' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
-          onclick={() => (devicePreview = "full")}
-          title="Full Width"
-        >
-          <Expand class="h-4 w-4" />
-        </button>
+        <!-- History Group -->
+        <div class="flex items-center gap-0.5 rounded bg-stone-100 p-0.5">
+          <button
+            class="icon-btn disabled:cursor-not-allowed disabled:opacity-50"
+            onclick={undo}
+            disabled={!canUndo}
+            title="Undo"
+          >
+            <Undo2 class="h-4 w-4" />
+          </button>
+          <button
+            class="icon-btn disabled:cursor-not-allowed disabled:opacity-50"
+            onclick={redo}
+            disabled={!canRedo}
+            title="Redo"
+          >
+            <Redo2 class="h-4 w-4" />
+          </button>
+        </div>
+
+        <!-- Device Preview Group -->
+        <div class="flex items-center gap-0.5 rounded bg-stone-100 p-0.5">
+          <button
+            class="icon-btn {devicePreview === 'mobile' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+            onclick={() => (devicePreview = "mobile")}
+            title="Mobile Preview (375px)"
+          >
+            <Smartphone class="h-4 w-4" />
+          </button>
+          <button
+            class="icon-btn {devicePreview === 'tablet' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+            onclick={() => (devicePreview = "tablet")}
+            title="Tablet Preview (768px)"
+          >
+            <Tablet class="h-4 w-4" />
+          </button>
+          <button
+            class="icon-btn {devicePreview === 'desktop' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+            onclick={() => (devicePreview = "desktop")}
+            title="Desktop Preview (1280px)"
+          >
+            <Monitor class="h-4 w-4" />
+          </button>
+          <button
+            class="icon-btn {devicePreview === 'full' ? 'bg-blue-500 text-white' : 'text-stone-600'}"
+            onclick={() => (devicePreview = "full")}
+            title="Full Width"
+          >
+            <Expand class="h-4 w-4" />
+          </button>
+        </div>
       </div>
+    </div>
+
+    <!-- Right Section -->
+    <div class="absolute right-2 flex items-center gap-2">
+      <!-- Settings Button -->
+      <button
+        class="icon-btn {rightPanelOpen ? 'bg-stone-200' : ''}"
+        onclick={() => (rightPanelOpen = !rightPanelOpen)}
+        title="Settings"
+      >
+        <Settings class="h-4 w-4" />
+      </button>
     </div>
   </div>
 
-  <!-- Right Section -->
-  <div class="absolute right-2 flex items-center gap-2">
-    <!-- Settings Button -->
-    <button
-      class="icon-btn {rightPanelOpen ? 'bg-stone-200' : ''}"
-      onclick={() => (rightPanelOpen = !rightPanelOpen)}
-      title="Settings"
+  <!-- Left Sidebar -->
+  <LeftSidebar
+    bind:isOpen={leftSidebarOpen}
+    templates={selectedTemplates}
+    onSelectSection={handleSelectSection}
+    onReorderSections={handleReorderSections}
+    onToggleVisibility={handleToggleVisibility}
+    onAddSection={() => (templateSelectorOpen = true)}
+  />
+
+  <!-- Main Content -->
+  <div class="flex h-screen pt-12">
+    <div
+      class="flex-1 overflow-auto relative {rightPanelOpen ? 'mr-80' : ''} {leftSidebarOpen
+        ? 'ml-40'
+        : 'ml-0'} bg-stone-100 transition-all duration-300"
     >
-      <Settings class="h-4 w-4" />
-    </button>
-  </div>
-</div>
+      <div class="flex justify-center {devicePreview === 'full' ? 'p-0' : 'p-8'}">
+        <div
+          bind:this={contentContainer}
+          class="relative bg-white transition-all duration-300 {devicePreview === 'full'
+            ? 'w-full'
+            : 'shadow-lg'} {devicePreview === 'mobile'
+            ? 'max-w-[375px]'
+            : devicePreview === 'tablet'
+              ? 'max-w-[768px]'
+              : devicePreview === 'desktop'
+                ? 'max-w-[1280px]'
+                : 'max-w-full'}"
+          style="width: 100%;"
+        >
+          <!-- Mock Header -->
+          <MockHeader {devicePreview} />
 
-<!-- Left Sidebar -->
-<LeftSidebar
-  bind:isOpen={leftSidebarOpen}
-  templates={selectedTemplates}
-  onSelectSection={handleSelectSection}
-  onReorderSections={handleReorderSections}
-  onToggleVisibility={handleToggleVisibility}
-  onAddSection={() => (templateSelectorOpen = true)}
-/>
+          <div class="p-8">
+            <!-- Templates -->
+            <div class="space-y-8">
+              {#each selectedTemplates as template, index (`${template.id}-${index}`)}
+                <div
+                  class="template-section animate-fade-in {$selectedSectionIndex === index ? 'selected-section' : ''}"
+                  style="animation-delay: {index * 0.1}s"
+                  data-section-index={index}
+                  onclick={(e) => {
+                    // Check if clicking on an editable element or its children
+                    const target = e.target as HTMLElement
+                    const editable = target.closest("[data-editable]")
+                    const repeatable = target.closest("[data-repeatable]")
 
-<!-- Main Content -->
-<div class="flex h-screen pt-12">
-  <div
-    class="flex-1 overflow-auto {rightPanelOpen ? 'mr-80' : ''} {leftSidebarOpen
-      ? 'ml-40'
-      : 'ml-0'} bg-stone-100 transition-all duration-300"
-  >
-    <div class="flex justify-center {devicePreview === 'full' ? 'p-0' : 'p-8'}">
-      <div
-        bind:this={contentContainer}
-        class="relative bg-white transition-all duration-300 {devicePreview === 'full'
-          ? 'w-full'
-          : 'shadow-lg'} {devicePreview === 'mobile'
-          ? 'max-w-[375px]'
-          : devicePreview === 'tablet'
-            ? 'max-w-[768px]'
-            : devicePreview === 'desktop'
-              ? 'max-w-[1280px]'
-              : 'max-w-full'}"
-        style="width: 100%;"
-      >
-        <!-- Mock Header -->
-        <MockHeader {devicePreview} />
+                    // Also check if target is inside a plugin component
+                    const pluginPlaceholder = target.closest("[id^='placeholder-']")
 
-        <div class="p-8">
-          <!-- Templates -->
-          <div class="space-y-8">
-            {#each selectedTemplates as template, index (`${template.id}-${index}`)}
-              <div
-                class="template-section animate-fade-in {$selectedSectionIndex === index ? 'selected-section' : ''}"
-                style="animation-delay: {index * 0.1}s"
-                data-section-index={index}
-                onclick={(e) => {
-                  // Check if clicking on an editable element
-                  const target = e.target as HTMLElement
-                  const editable = target.closest("[data-editable]")
-                  const repeatable = target.closest("[data-repeatable]")
-
-                  // If not clicking on editable/repeatable content, select the section
-                  if (!editable && !repeatable) {
-                    e.stopPropagation()
-                    handleSelectSection(index)
-                  }
-                }}
-                onkeydown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    handleSelectSection(index)
-                  }
-                }}
-                role="button"
-                tabindex="0"
-              >
-                <TemplateRenderer
-                  {template}
-                  {handleElementClick}
-                />
-              </div>
-            {/each}
-
-            <!-- Empty State -->
-            {#if selectedTemplates.length === 0}
-              <div class="flex min-h-[60vh] flex-col items-center justify-center text-center">
-                <div class="mb-4 flex h-16 w-16 items-center justify-center border-2 border-dashed border-stone-300">
-                  <Grid3X3 class="h-8 w-8 text-stone-400" />
-                </div>
-                <button
-                  onclick={() => (templateSelectorOpen = true)}
-                  class="btn btn-primary"
+                    // If not clicking on editable/repeatable content or plugin components, select the section
+                    if (!editable && !repeatable && !pluginPlaceholder) {
+                      e.stopPropagation()
+                      handleSelectSection(index)
+                    }
+                  }}
+                  role="button"
+                  tabindex="0"
                 >
-                  <Plus class="mr-2 h-4 w-4" />
-                  Add Template
-                </button>
-              </div>
-            {/if}
+                  <TemplateRendererV3
+                    {template}
+                    onElementClick={handleElementClick}
+                  />
+                </div>
+              {/each}
+
+              <!-- Empty State -->
+              {#if selectedTemplates.length === 0}
+                <div class="flex min-h-[60vh] flex-col items-center justify-center text-center">
+                  <div class="mb-4 flex h-16 w-16 items-center justify-center border-2 border-dashed border-stone-300">
+                    <Grid3X3 class="h-8 w-8 text-stone-400" />
+                  </div>
+                  <button
+                    onclick={() => (templateSelectorOpen = true)}
+                    class="btn btn-primary"
+                  >
+                    <Plus class="mr-2 h-4 w-4" />
+                    Add Template
+                  </button>
+                </div>
+              {/if}
+            </div>
+
+            <!-- Mock Footer -->
+            <MockFooter {devicePreview} />
           </div>
 
-          <!-- Mock Footer -->
-          <MockFooter {devicePreview} />
+          <!-- Unified Selection Overlay - Inside scroll container -->
+          <SelectionOverlay
+            container={contentContainer}
+            onAction={handleOverlayAction}
+          />
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- Right Panel -->
-<RightPanel
-  bind:isOpen={rightPanelOpen}
-  selectedElement={firstSelected}
-  {historyInfo}
-  onHistoryAction={handleHistoryAction}
-/>
+  <!-- Right Panel -->
+  <RightPanel
+    bind:isOpen={rightPanelOpen}
+    selectedElement={firstSelected}
+    {historyInfo}
+    onHistoryAction={handleHistoryAction}
+  />
 
-<!-- Template Selector -->
-<TemplateSelector
-  bind:isOpen={templateSelectorOpen}
-  onSelectTemplate={handleSelectTemplate}
-/>
+  <!-- Template Selector -->
+  <TemplateSelector
+    bind:isOpen={templateSelectorOpen}
+    onSelectTemplate={handleSelectTemplate}
+  />
 
-<!-- Unified Selection Overlay -->
-<SelectionOverlay
-  container={contentContainer}
-  onAction={handleOverlayAction}
-/>
 
-<style>
-  /* Import selection styles */
-  @import "$lib/styles/selection.css";
-
-  /* Minimal Editor Styles */
-  :global([data-editable]) {
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    position: relative;
-  }
-
-  :global([data-editable]:hover) {
-    outline: 1px solid var(--color-accent-light);
-    outline-offset: 1px;
-  }
-
-  :global([data-repeatable]) {
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    position: relative;
-  }
-
-  :global([data-repeatable]:hover) {
-    outline: 2px dashed #22c55e;
-    outline-offset: 4px;
-    background-color: rgba(34, 197, 94, 0.05);
-  }
-
-  /* Edit mode styles are now handled by [data-editing="true"] in selection.css */
-
-  :global(*[contenteditable="true"]::before) {
-    content: "";
-    position: absolute;
-    top: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #f59e0b;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-    pointer-events: none;
-  }
-
-  /* Section styles */
-  .template-section {
-    position: relative;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-radius: 8px;
-    padding: 2px;
-    margin: -2px;
-  }
-
-  .template-section:hover {
-    outline: 2px dashed #6366f1;
-    outline-offset: 4px;
-    background-color: rgba(99, 102, 241, 0.02);
-  }
-
-  /* Only show focus outline when actually selected */
-  .template-section.selected-section:focus {
-    outline: 2px solid #6366f1;
-    outline-offset: 4px;
-  }
-
-  .template-section.selected-section:focus-visible {
-    outline: 2px solid #6366f1;
-    outline-offset: 4px;
-  }
-
-  /* Selected section styles */
-  .template-section.selected-section {
-    outline: 2px solid #6366f1;
-    outline-offset: 4px;
-    background-color: rgba(99, 102, 241, 0.05);
-    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.1);
-  }
-
-  /* Prevent section hover when hovering on child elements */
-  .template-section:has([data-editable]:hover),
-  .template-section:has([data-repeatable]:hover) {
-    outline: none;
-    background-color: transparent;
-  }
-
-  /* Don't show section hover styles when a section is selected and hovering over elements */
-  .template-section.selected-section:has([data-editable]:hover),
-  .template-section.selected-section:has([data-repeatable]:hover) {
-    outline: 2px solid #6366f1;
-    background-color: rgba(99, 102, 241, 0.05);
-  }
-</style>
+  <!-- Hotkey Hints -->
+  <HotkeyHints />
+</HotkeyProvider>

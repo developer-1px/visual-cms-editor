@@ -1,77 +1,92 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-    <meta charset="utf-8">
+  <head>
+    <meta charset="utf-8" />
     <title>Selection Test</title>
     <style>
-        [data-selected="true"] {
-            outline: 2px solid #3b82f6 !important;
-            outline-offset: 2px !important;
-            background-color: rgba(59, 130, 246, 0.1) !important;
-        }
+      [data-selected="true"] {
+        outline: 2px solid #3b82f6 !important;
+        outline-offset: 2px !important;
+        background-color: rgba(59, 130, 246, 0.1) !important;
+      }
 
-        [data-selected="true"][data-selection-type="text"] {
-            outline-color: #3b82f6 !important;
-        }
+      [data-selected="true"][data-selection-type="text"] {
+        outline-color: #3b82f6 !important;
+      }
 
-        [data-selected="true"][data-selection-type="image"] {
-            outline-color: #fb923c !important;
-        }
+      [data-selected="true"][data-selection-type="image"] {
+        outline-color: #fb923c !important;
+      }
 
-        [data-editable] {
-            cursor: pointer;
-            padding: 8px;
-            margin: 4px;
-            border: 1px dashed #ccc;
-        }
+      [data-editable] {
+        cursor: pointer;
+        padding: 8px;
+        margin: 4px;
+        border: 1px dashed #ccc;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <h1>Selection Test</h1>
     <p>Click on the editable elements below to test selection:</p>
 
-    <div data-editable="text" id="test-text">Click me - Text Element</div>
-    <div data-editable="image" id="test-image">Click me - Image Element</div>
-    <div data-repeatable="feature" id="test-repeatable">Click me - Repeatable Element</div>
+    <div
+      data-editable="text"
+      id="test-text"
+    >
+      Click me - Text Element
+    </div>
+    <div
+      data-editable="image"
+      id="test-image"
+    >
+      Click me - Image Element
+    </div>
+    <div
+      data-repeatable="feature"
+      id="test-repeatable"
+    >
+      Click me - Repeatable Element
+    </div>
 
     <script>
-        // Simple test selection logic
-        function selectElement(element, type) {
-            // Clear all selections first
-            document.querySelectorAll('[data-selected]').forEach(el => {
-                el.removeAttribute('data-selected');
-                el.removeAttribute('data-selection-type');
-            });
+      // Simple test selection logic
+      function selectElement(element, type) {
+        // Clear all selections first
+        document.querySelectorAll("[data-selected]").forEach((el) => {
+          el.removeAttribute("data-selected")
+          el.removeAttribute("data-selection-type")
+        })
 
-            // Select the clicked element
-            element.setAttribute('data-selected', 'true');
-            element.setAttribute('data-selection-type', type);
-            
-            console.log(`Selected ${type} element:`, element);
+        // Select the clicked element
+        element.setAttribute("data-selected", "true")
+        element.setAttribute("data-selection-type", type)
+
+        console.log(`Selected ${type} element:`, element)
+      }
+
+      // Add click handlers
+      document.getElementById("test-text").addEventListener("click", function () {
+        selectElement(this, "text")
+      })
+
+      document.getElementById("test-image").addEventListener("click", function () {
+        selectElement(this, "image")
+      })
+
+      document.getElementById("test-repeatable").addEventListener("click", function () {
+        selectElement(this, "repeatable")
+      })
+
+      // Clear selection on document click
+      document.addEventListener("click", function (e) {
+        if (!e.target.hasAttribute("data-editable") && !e.target.hasAttribute("data-repeatable")) {
+          document.querySelectorAll("[data-selected]").forEach((el) => {
+            el.removeAttribute("data-selected")
+            el.removeAttribute("data-selection-type")
+          })
         }
-
-        // Add click handlers
-        document.getElementById('test-text').addEventListener('click', function() {
-            selectElement(this, 'text');
-        });
-
-        document.getElementById('test-image').addEventListener('click', function() {
-            selectElement(this, 'image');
-        });
-
-        document.getElementById('test-repeatable').addEventListener('click', function() {
-            selectElement(this, 'repeatable');
-        });
-
-        // Clear selection on document click
-        document.addEventListener('click', function(e) {
-            if (!e.target.hasAttribute('data-editable') && !e.target.hasAttribute('data-repeatable')) {
-                document.querySelectorAll('[data-selected]').forEach(el => {
-                    el.removeAttribute('data-selected');
-                    el.removeAttribute('data-selection-type');
-                });
-            }
-        });
+      })
     </script>
-</body>
+  </body>
 </html>

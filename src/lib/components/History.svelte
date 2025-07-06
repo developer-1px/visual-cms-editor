@@ -2,8 +2,12 @@
   import { Undo2, Redo2, Clock } from "lucide-svelte"
   import type { HistoryInfo } from "$lib/core/history"
 
-  export let historyInfo: HistoryInfo
-  export let onHistoryAction: (action: "undo" | "redo") => void
+  interface Props {
+    historyInfo: HistoryInfo
+    onHistoryAction: (action: "undo" | "redo") => void
+  }
+
+  let { historyInfo, onHistoryAction }: Props = $props()
 </script>
 
 <div class="animate-fade-in space-y-6">

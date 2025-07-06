@@ -32,7 +32,10 @@
       "Bash(pnpm test:*)",
       "Bash(curl:*)",
       "Bash(open test-selection.html)",
-      "Bash(open test-build.html)"
+      "Bash(open test-build.html)",
+      "Bash(npm search:*)",
+      "Bash(npm install:*)",
+      "Bash(pnpm i:*)"
     ],
     "deny": []
   }
