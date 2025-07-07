@@ -27,20 +27,19 @@
     try {
       templateModel = await parser.parse(template.html, template.id, template.name)
     } catch (error) {
+      // Template parsing failed - keep console.error for critical error handling
       console.error("Template parsing failed:", error)
       templateModel = null
     }
   })
 
-  // 디버깅용 로그
+  // Track template model changes
   $effect(() => {
     if (templateModel && templateModel.root) {
-      console.log("📋 TemplateModel generated:", {
-        id: templateModel.id,
-        name: templateModel.name,
-        root: templateModel.root,
-        childCount: templateModel.root.children?.length || 0,
-      })
+      // Template model successfully generated
+      // - Model ID and name are set
+      // - Root element is available
+      // - Child elements have been parsed
     }
   })
 </script>

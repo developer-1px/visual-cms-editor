@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Icon Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .icon-wrapper {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+        .icon-container {
+            display: inline-block;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        svg {
+            display: block;
+        }
+        .label {
+            font-size: 12px;
+            color: #666;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SVG Icon Rendering Test</h1>
+        
+        <div class="test-section">
+            <h2>1. Direct SVG from templates.ts</h2>
+            <p>These are the exact SVG elements from the templates:</p>
+            
+            <div class="icon-wrapper">
+                <div class="icon-container">
+                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="48" height="48">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div class="label">Lightning (from template)</div>
+            </div>
+            
+            <div class="icon-wrapper">
+                <div class="icon-container">
+                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="48" height="48">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <div class="label">Lock (from template)</div>
+            </div>
+            
+            <div class="icon-wrapper">
+                <div class="icon-container">
+                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="48" height="48">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                    </svg>
+                </div>
+                <div class="label">Heart (from template)</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>2. Testing innerHTML rendering</h2>
+            <p>Testing how innerHTML handles SVG:</p>
+            <div id="innerHTML-test" class="icon-wrapper"></div>
+            <pre id="innerHTML-result"></pre>
+        </div>
+        
+        <div class="test-section">
+            <h2>3. Testing data-editable="icon" wrapper</h2>
+            <p>How it would appear in the actual template:</p>
+            <div class="icon-wrapper">
+                <div class="w-12 h-12 mx-auto mb-6 text-stone-700" data-editable="icon">
+                    <svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                </div>
+                <div class="label">Icon with data-editable</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>4. Testing with Svelte's {@html} directive simulation</h2>
+            <div id="svelte-html-test" class="icon-wrapper"></div>
+            <pre id="svelte-html-result"></pre>
+        </div>
+    </div>
+    
+    <script>
+        // Test 2: innerHTML rendering
+        const svgString = `<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="48" height="48">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+</svg>`;
+        
+        const container = document.getElementById('innerHTML-test');
+        const wrapper = document.createElement('div');
+        wrapper.className = 'icon-container';
+        wrapper.innerHTML = svgString;
+        container.appendChild(wrapper);
+        
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = 'innerHTML rendered';
+        container.appendChild(label);
+        
+        document.getElementById('innerHTML-result').textContent = 'innerHTML used: ' + svgString;
+        
+        // Test 4: Svelte {@html} simulation
+        const iconModel = {
+            outerHTML: '<svg class="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>'
+        };
+        
+        const svelteTest = document.getElementById('svelte-html-test');
+        const svelteWrapper = document.createElement('span');
+        svelteWrapper.className = 'icon-container';
+        svelteWrapper.style.display = 'inline-block';
+        svelteWrapper.innerHTML = iconModel.outerHTML;
+        svelteTest.appendChild(svelteWrapper);
+        
+        const svelteLabel = document.createElement('div');
+        svelteLabel.className = 'label';
+        svelteLabel.textContent = 'Svelte {@html} simulation';
+        svelteTest.appendChild(svelteLabel);
+        
+        document.getElementById('svelte-html-result').textContent = 'model.outerHTML: ' + iconModel.outerHTML;
+        
+        // Check if SVGs are actually rendered
+        const allSvgs = document.querySelectorAll('svg');
+        console.log('Total SVGs found:', allSvgs.length);
+        allSvgs.forEach((svg, index) => {
+            console.log(`SVG ${index + 1}:`, {
+                width: svg.getAttribute('width'),
+                height: svg.getAttribute('height'),
+                viewBox: svg.getAttribute('viewBox'),
+                innerHTML: svg.innerHTML.trim().substring(0, 100) + '...'
+            });
+        });
+    </script>
+</body>
+</html>

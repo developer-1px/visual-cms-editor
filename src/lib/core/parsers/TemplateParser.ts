@@ -10,6 +10,31 @@ import type {
 } from "../models/TemplateModels"
 import { generateEditableElements } from "../templates/convention"
 import { generateElementId } from "../utils/uuid"
+import {
+  isSvgContext,
+  parseChildren,
+  parseTextNodes,
+  createFrameAttributes,
+  extractInlineStyles,
+  extractElementAttributes,
+} from "./parser-helpers"
+
+// Type guards for DOM elements
+const isHTMLImageElement = (element: Element): element is HTMLImageElement => {
+  return element.tagName.toLowerCase() === 'img'
+}
+
+const isSVGElement = (element: Element): element is SVGElement => {
+  return element.tagName.toLowerCase() === 'svg' || element.closest('svg') !== null
+}
+
+const isHTMLAnchorElement = (element: Element): element is HTMLAnchorElement => {
+  return element.tagName.toLowerCase() === 'a'
+}
+
+const isHTMLElement = (element: Element): element is HTMLElement => {
+  return element instanceof HTMLElement
+}
 
 export class TemplateParser {
   private editableSelectors: Set<string> = new Set()
@@ -27,7 +52,7 @@ export class TemplateParser {
 
     // 편집 가능한 선택자들을 저장
     this.editableSelectors = new Set(editableElements.map((el) => el.selector))
-    console.log("🔍 Editable selectors found:", Array.from(this.editableSelectors))
+    // Editable selectors have been identified and stored
 
     const doc = new DOMParser().parseFromString(html, "text/html")
     const rootElement = doc.body.firstElementChild || doc.body
@@ -35,12 +60,17 @@ export class TemplateParser {
     // 편집 가능한 요소들에 data-editable 속성 추가
     this.enhanceElementsWithDataAttributes(doc, editableElements)
 
-    const root = this.parseElement(rootElement) as FrameModel
+    const parsedRoot = this.parseElement(rootElement)
+    
+    // Ensure root is a FrameModel
+    if (parsedRoot.type !== 'frame') {
+      throw new Error('Root element must be a FrameModel')
+    }
 
     return {
       id: templateId,
       name: templateName,
-      root,
+      root: parsedRoot,
       metadata: {
         version: "1.0",
         created: new Date().toISOString(),
@@ -53,9 +83,14 @@ export class TemplateParser {
    * DOM 요소를 TemplateElement로 변환 (재귀)
    */
   private parseElement(element: Element): TemplateElement {
-    // data-editable이 있으면 구조를 유지하면서 텍스트만 편집 가능하게
+    // data-editable이 있으면 적절한 모델로 처리
     const editableType = element.getAttribute("data-editable")
     if (editableType) {
+      // 특정 타입들은 직접 EditableModel로 생성
+      if (editableType === "icon" || editableType === "image") {
+        return this.createEditableModel(element, editableType)
+      }
+      // text, link나 기타는 구조를 유지하면서 편집 가능하게
       return this.createFrameModelWithEditableText(element, editableType)
     }
 
@@ -69,34 +104,18 @@ export class TemplateParser {
   private createFrameModel(element: Element): FrameModel {
     const children: TemplateElement[] = []
 
-    // SVG 요소는 특별 처리 - 내부 구조를 보존
-    if (element.tagName.toLowerCase() === "svg" || element.closest("svg")) {
-      // SVG 내부는 자식 요소만 처리하고 텍스트 노드는 무시
-      for (const child of element.children) {
-        children.push(this.parseElement(child))
-      }
-    } else {
-      // 일반 요소: 자식 요소들을 재귀적으로 파싱
-      for (const child of element.children) {
-        children.push(this.parseElement(child))
-      }
-
-      // 텍스트 노드 처리 (data-editable 없는 순수 텍스트)
-      for (const node of element.childNodes) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent?.trim()
-          if (text) {
-            children.push(this.createTextModel(text, false))
-          }
-        }
-      }
+    // 자식 요소들 파싱
+    children.push(...parseChildren(element, (child) => this.parseElement(child)))
+    
+    // 텍스트 노드들 파싱 (SVG가 아닌 경우에만)
+    if (!isSvgContext(element)) {
+      children.push(...parseTextNodes(element, (text, isEditable) => 
+        this.createTextModel(text, isEditable)
+      ))
     }
 
     return {
-      id: this.generateId(),
-      type: "frame",
-      tagName: element.tagName.toLowerCase(),
-      className: element.className || undefined,
+      ...createFrameAttributes(element),
       styles: this.extractStyles(element),
       attributes: this.extractAttributes(element),
       children,
@@ -106,22 +125,14 @@ export class TemplateParser {
   /**
    * 구조를 유지하면서 텍스트만 편집 가능한 FrameModel 생성
    */
-  private createFrameModelWithEditableText(element: Element): FrameModel {
+  private createFrameModelWithEditableText(element: Element, editableType: string): FrameModel {
     const children: TemplateElement[] = []
 
-    // SVG 요소는 특별 처리
-    if (element.tagName.toLowerCase() === "svg" || element.closest("svg")) {
-      // SVG 내부는 자식 요소만 처리
-      for (const child of element.children) {
-        children.push(this.parseElement(child))
-      }
-    } else {
-      // 자식 요소들을 처리
-      for (const child of element.children) {
-        children.push(this.parseElement(child))
-      }
-
-      // 텍스트 노드들을 편집 가능한 TextModel로 처리
+    // 자식 요소들 파싱
+    children.push(...parseChildren(element, (child) => this.parseElement(child)))
+    
+    // 텍스트 노드들을 편집 가능한 TextModel로 처리 (SVG가 아닌 경우에만)
+    if (!isSvgContext(element)) {
       for (const node of element.childNodes) {
         if (node.nodeType === Node.TEXT_NODE) {
           const text = node.textContent?.trim()
@@ -133,10 +144,7 @@ export class TemplateParser {
     }
 
     return {
-      id: this.generateId(),
-      type: "frame",
-      tagName: element.tagName.toLowerCase(),
-      className: element.className || undefined,
+      ...createFrameAttributes(element),
       styles: this.extractStyles(element),
       attributes: this.extractAttributes(element),
       children,
@@ -189,7 +197,13 @@ export class TemplateParser {
    * ImageModel 생성
    */
   private createImageModel(element: Element): ImageModel {
-    const img = element.querySelector("img") || (element as HTMLImageElement)
+    let img: HTMLImageElement | null = element.querySelector("img")
+    if (!img && isHTMLImageElement(element)) {
+      img = element
+    }
+    if (!img) {
+      throw new Error("No image element found")
+    }
 
     return {
       id: this.generateId(),
@@ -206,14 +220,18 @@ export class TemplateParser {
    * IconModel 생성
    */
   private createIconModel(element: Element): IconModel {
-    const svg = element.querySelector("svg") || (element as SVGElement)
-    const path = svg.querySelector("path")
+    let svg: SVGElement | null = element.querySelector("svg")
+    if (!svg && isSVGElement(element)) {
+      svg = element
+    }
+    if (!svg) {
+      throw new Error("No SVG element found")
+    }
 
     return {
       id: this.generateId(),
       type: "icon",
-      pathData: path?.getAttribute("d") || "",
-      viewBox: svg.getAttribute("viewBox") || "0 0 24 24",
+      outerHTML: svg.outerHTML, // 전체 SVG outerHTML 저장
       isEditable: true,
       className: element.className || undefined,
       attributes: this.extractAttributes(element),
@@ -224,7 +242,10 @@ export class TemplateParser {
    * LinkModel 생성
    */
   private createLinkModel(element: Element): LinkModel {
-    const anchor = element as HTMLAnchorElement
+    if (!isHTMLAnchorElement(element)) {
+      throw new Error("Element is not an anchor element")
+    }
+    const anchor = element
 
     return {
       id: this.generateId(),
@@ -242,38 +263,23 @@ export class TemplateParser {
    * 인라인 스타일 추출
    */
   private extractStyles(element: Element): Record<string, string> | undefined {
-    const style = (element as HTMLElement).style
-    if (!style || style.length === 0) return undefined
-
-    const styles: Record<string, string> = {}
-    for (let i = 0; i < style.length; i++) {
-      const property = style.item(i)
-      styles[property] = style.getPropertyValue(property)
-    }
-
-    return Object.keys(styles).length > 0 ? styles : undefined
+    return extractInlineStyles(element)
   }
 
   /**
    * 속성 추출 (data-editable, class, style 제외)
    */
   private extractAttributes(element: Element): Record<string, string> | undefined {
-    const attributes: Record<string, string> = {}
-    const excludeAttrs = ["class", "style", "data-editable", "data-max-length"]
-
-    for (const attr of element.attributes) {
-      if (!excludeAttrs.includes(attr.name)) {
-        attributes[attr.name] = attr.value
-      }
-    }
-
-    return Object.keys(attributes).length > 0 ? attributes : undefined
+    return extractElementAttributes(element)
   }
 
   /**
    * DOM에 data-editable 속성 추가
    */
-  private enhanceElementsWithDataAttributes(doc: Document, editableElements: Array<{selector: string; type: string; constraints?: {maxLength?: number}}>): void {
+  private enhanceElementsWithDataAttributes(
+    doc: Document,
+    editableElements: Array<{ selector: string; type: string; constraints?: { maxLength?: number } }>,
+  ): void {
     editableElements.forEach((editableElement) => {
       try {
         const elements = doc.querySelectorAll(editableElement.selector)
@@ -283,8 +289,8 @@ export class TemplateParser {
             element.setAttribute("data-max-length", editableElement.constraints.maxLength.toString())
           }
         })
-      } catch (error) {
-        console.warn(`Failed to apply selector "${editableElement.selector}":`, error)
+      } catch {
+        // Failed to apply selector - might be an invalid CSS selector
       }
     })
   }
@@ -295,5 +301,4 @@ export class TemplateParser {
   private generateId(): string {
     return generateElementId()
   }
-
 }

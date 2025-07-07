@@ -1,14 +1,12 @@
 <script lang="ts">
-  import { Edit2, Copy, Trash2, Type, Scissors, Eye, EyeOff, ChevronUp, ChevronDown, Replace, Link } from "lucide-svelte"
+  import { Edit2, Copy, Trash2, Type, Scissors, Eye, ChevronUp, ChevronDown } from "lucide-svelte"
   import {
     selectedItems,
-    selectedElements,
     activeSelectionType,
     activeSelectionStyle,
     selectionCount,
     isSelectionEmpty,
-    selectedSectionIndex,
-  } from "$lib/core/selection/SelectionManager"
+  } from "$lib/core/selection"
 
   interface Props {
     container?: HTMLElement | null
@@ -20,56 +18,50 @@
   let overlayElement = $state<HTMLElement | undefined>()
 
   // Get overlay color and actions based on selection type
-  let overlayColor = $derived($activeSelectionStyle?.overlayColor || 'rgb(31, 41, 55)') // stone-900
+  let overlayColor = $derived($activeSelectionStyle?.overlayColor || "rgb(31, 41, 55)") // stone-900
   let actions = $derived(getActionsForType($activeSelectionType))
 
-  // Computed position based on selection
+  // Computed position based on selected elements directly
   let position = $derived.by(() => {
-    if ($isSelectionEmpty || !overlayElement || !container) {
-      return { x: 0, y: 0 }
+    if ($isSelectionEmpty || !overlayElement) {
+      return { x: 0, y: 0, visible: false }
     }
 
-    // Get the first selected item
-    const firstItem = Array.from($selectedItems)[0]
+    // Get the first selected item and try to get its element
+    const firstItem = Array.from($selectedItems.values())[0]
     if (!firstItem) {
-      return { x: 0, y: 0 }
+      return { x: 0, y: 0, visible: false }
     }
 
+    // Try to find the element in the DOM using the ID
     let targetElement: HTMLElement | null = null
-
-    if (firstItem.context === 'sidebar' && typeof firstItem.element === 'number') {
-      // For section selections, position near the section in sidebar
-      const sectionElements = document.querySelectorAll('.template-section')
-      targetElement = sectionElements[firstItem.element] as HTMLElement
-    } else if (firstItem.element instanceof HTMLElement) {
-      // For canvas elements
+    
+    if (firstItem.element instanceof HTMLElement) {
       targetElement = firstItem.element
+    } else {
+      // Fallback: try to find by ID in the DOM
+      const elementId = (firstItem.element as any)?.id || firstItem.id
+      if (elementId) {
+        targetElement = document.getElementById(elementId)
+      }
     }
 
     if (!targetElement) {
-      return { x: 0, y: 0 }
+      console.warn('SelectionOverlay: No target element found', { firstItem })
+      return { x: 0, y: 0, visible: false }
     }
 
+    // Calculate position relative to viewport
     const rect = targetElement.getBoundingClientRect()
     
-    // Find the scroll container (the one with overflow-auto)
-    const scrollContainer = targetElement.closest('.overflow-auto')
-    const scrollContainerRect = scrollContainer?.getBoundingClientRect() || { left: 0, top: 0 }
-    
-    // Calculate position relative to scroll container
-    const relativeX = rect.left - scrollContainerRect.left
-    const relativeY = rect.top - scrollContainerRect.top
-    
-    // Get scroll position of scroll container
-    const containerScrollTop = scrollContainer?.scrollTop || 0
-    const containerScrollLeft = scrollContainer?.scrollLeft || 0
-    
-    // Get overlay height (estimated if not available)
-    const overlayHeight = overlayElement.offsetHeight || 40 // estimated height
-    
-    return { 
-      x: relativeX + containerScrollLeft, 
-      y: relativeY + containerScrollTop - overlayHeight - 8 
+    // Position overlay above the element
+    const x = rect.left + rect.width / 2 - (overlayElement.offsetWidth || 80) / 2
+    const y = rect.top - (overlayElement.offsetHeight || 40) - 8
+
+    return {
+      x: Math.max(8, x),
+      y: Math.max(8, y),
+      visible: true
     }
   })
 
@@ -77,93 +69,92 @@
     if (!type) return []
 
     const commonActions = [
-      { id: 'copy', icon: Copy, title: 'Copy', shortcut: 'Ctrl+C' },
-      { id: 'delete', icon: Trash2, title: 'Delete', shortcut: 'Delete', color: 'text-red-400' }
+      { id: "copy", icon: Copy, title: "Copy", shortcut: "Ctrl+C" },
+      { id: "delete", icon: Trash2, title: "Delete", shortcut: "Delete", color: "text-red-400" },
     ]
 
     switch (type) {
       case "text":
-        return [
-          { id: 'edit', icon: Type, title: 'Edit', shortcut: 'Enter' },
-          ...commonActions
-        ]
+        return [{ id: "edit", icon: Type, title: "Edit", shortcut: "Enter" }, ...commonActions]
       case "repeatable":
-        return [
-          ...commonActions,
-          { id: 'cut', icon: Scissors, title: 'Cut', shortcut: 'Ctrl+X' }
-        ]
+        return [...commonActions, { id: "cut", icon: Scissors, title: "Cut", shortcut: "Ctrl+X" }]
       case "section":
         return [
-          { id: 'moveUp', icon: ChevronUp, title: 'Move Up' },
-          { id: 'moveDown', icon: ChevronDown, title: 'Move Down' },
-          { id: 'toggleVisibility', icon: Eye, title: 'Toggle Visibility' },
-          { id: 'delete', icon: Trash2, title: 'Remove Section', color: 'text-red-400' }
+          { id: "moveUp", icon: ChevronUp, title: "Move Up" },
+          { id: "moveDown", icon: ChevronDown, title: "Move Down" },
+          { id: "toggleVisibility", icon: Eye, title: "Toggle Visibility" },
+          { id: "delete", icon: Trash2, title: "Remove Section", color: "text-red-400" },
         ]
       case "image":
       case "icon":
-        return [
-          { id: 'replace', icon: Edit2, title: 'Replace' },
-          ...commonActions
-        ]
+        return [{ id: "replace", icon: Edit2, title: "Replace" }, ...commonActions]
       case "link":
-        return [
-          { id: 'editLink', icon: Edit2, title: 'Edit Link' },
-          ...commonActions
-        ]
+        return [{ id: "editLink", icon: Edit2, title: "Edit Link" }, ...commonActions]
       default:
         return commonActions
     }
   }
 
   function handleAction(actionId: string) {
-    onAction?.(actionId, { 
+    onAction?.(actionId, {
       selection: $selectedItems,
-      type: $activeSelectionType
+      type: $activeSelectionType,
     })
   }
 
-  // Debug effect
+  // Track selection state changes for overlay positioning
   $effect(() => {
-    console.log("🎯 SelectionOverlay state:", {
-      selectedItemsSize: $selectedItems.size,
-      isSelectionEmpty: $isSelectionEmpty,
-      activeSelectionType: $activeSelectionType,
-      actions: actions.length,
-      overlayElement: !!overlayElement,
-      position
-    })
+    // Force position recalculation when selection changes
+    $selectedItems;
+    $activeSelectionType;
+    
+    // Small delay to ensure DOM updates have completed
+    if (!$isSelectionEmpty) {
+      setTimeout(() => {
+        // Force a re-render by updating a dummy state
+        if (overlayElement) {
+          overlayElement.style.opacity = '0.99'
+          setTimeout(() => {
+            if (overlayElement) overlayElement.style.opacity = '1'
+          }, 10)
+        }
+      }, 50)
+    }
   })
 </script>
 
 <!-- Always render overlay but control visibility -->
 <div
   bind:this={overlayElement}
-  class="absolute shadow-xl flex items-center gap-1 px-1 py-1 z-30 animate-fade-in floating-ui {!$isSelectionEmpty ? 'block' : 'hidden'}"
+  class="animate-fade-in floating-ui fixed z-50 flex items-center gap-1 px-1 py-1 shadow-xl {position.visible && !$isSelectionEmpty
+    ? 'block'
+    : 'hidden'}"
   style="
     left: {position.x}px; 
     top: {position.y}px; 
     background-color: {overlayColor};
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: auto;
   "
 >
-  
   {#if actions.length > 0}
-    {#each actions as action}
-      {#if action.id === 'divider'}
-        <div class="w-px h-5 bg-white/20"></div>
+    {#each actions as action (action.id)}
+      {#if action.id === "divider"}
+        <div class="h-5 w-px bg-white/20"></div>
       {:else}
         {@const IconComponent = action.icon}
         <button
-          class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded transition-all {action.color || ''}"
+          class="flex h-8 w-8 items-center justify-center rounded text-white transition-all hover:bg-white/20 {action.color ||
+            ''}"
           onclick={() => handleAction(action.id)}
           title="{action.title}{action.shortcut ? ` (${action.shortcut})` : ''}"
         >
-          <IconComponent class="w-4 h-4" />
+          <IconComponent class="h-4 w-4" />
         </button>
       {/if}
     {/each}
-    
+
     {#if $selectionCount > 1}
       <div class="px-2 text-xs text-white/80">
         {$selectionCount}
@@ -171,9 +162,7 @@
     {/if}
   {:else}
     <!-- Fallback content for debugging -->
-    <div class="px-2 py-1 text-xs text-white bg-red-500 rounded">
-      DEBUG: No actions
-    </div>
+    <div class="rounded bg-red-500 px-2 py-1 text-xs text-white">DEBUG: No actions</div>
   {/if}
 </div>
 
@@ -181,11 +170,11 @@
   .floating-ui {
     pointer-events: auto;
   }
-  
+
   .animate-fade-in {
     animation: fadeIn 0.2s ease-out;
   }
-  
+
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -197,4 +186,3 @@
     }
   }
 </style>
-

@@ -49,12 +49,12 @@
 </script>
 
 {#if showHints}
-  <div class="fixed bottom-5 right-5 w-80 bg-white border border-gray-300 rounded-xl shadow-2xl z-[1000] text-sm">
-    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-300">
+  <div class="fixed right-5 bottom-5 z-[1000] w-80 rounded-xl border border-gray-300 bg-white text-sm shadow-2xl">
+    <div class="flex items-center justify-between border-b border-gray-300 px-5 py-4">
       <h3 class="text-base font-semibold text-gray-900">Keyboard Shortcuts</h3>
       <button
         onclick={() => (showHints = false)}
-        class="flex items-center justify-center w-6 h-6 rounded hover:bg-gray-50 text-gray-500 hover:text-gray-700 transition-all duration-200"
+        class="flex h-6 w-6 items-center justify-center rounded text-gray-500 transition-all duration-200 hover:bg-gray-50 hover:text-gray-700"
         aria-label="Close"
       >
         <svg
@@ -73,10 +73,10 @@
       </button>
     </div>
 
-    <div class="px-5 py-4 max-h-96 overflow-y-auto">
+    <div class="max-h-96 overflow-y-auto px-5 py-4">
       {#each Object.entries(hints) as [category, items] (category)}
         <div class="mb-5 last:mb-0">
-          <h4 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">{category}</h4>
+          <h4 class="mb-2 text-xs font-semibold tracking-wider text-gray-500 uppercase">{category}</h4>
           <div class="flex flex-col gap-1.5">
             {#each items as hint (hint.combo)}
               <div class="flex items-center gap-3">
@@ -89,7 +89,7 @@
       {/each}
     </div>
 
-    <div class="px-5 py-3 border-t border-gray-300 text-xs text-gray-500 text-center">
+    <div class="border-t border-gray-300 px-5 py-3 text-center text-xs text-gray-500">
       Press <KeyboardShortcut combo="cmd+shift+k" /> to toggle this help
     </div>
   </div>

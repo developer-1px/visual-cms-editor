@@ -2,6 +2,7 @@
   import { Settings, History as HistoryIcon, X, Bug, Copy, Check } from "lucide-svelte"
   import Inspector from "./Inspector.svelte"
   import History from "./History.svelte"
+  import DebugPanel from "./DebugPanel.svelte"
   import type { HistoryInfo } from "$lib/core/history"
   import {
     selectedItems,
@@ -10,7 +11,7 @@
     activeSelectionContext,
     selectionCount,
     selectionManager,
-  } from "$lib/core/selection/SelectionManager"
+  } from "$lib/core/selection"
   import { historyManager } from "$lib/core/history"
 
   interface Props {
@@ -96,212 +97,7 @@
       <!-- Tab Content -->
       <div class="flex-1 overflow-y-auto">
         {#if activeTab === "debug"}
-          <div class="p-4">
-            <!-- Copy All Button -->
-            <div class="mb-4 flex justify-end">
-              <button
-                class="flex items-center gap-2 rounded bg-stone-100 px-3 py-1.5 text-sm transition-colors hover:bg-stone-200"
-                onclick={() => {
-                  const allData = {
-                    selection: {
-                      selectedItems: Array.from($selectedItems).map((item) => ({
-                        id: item.id,
-                        type: item.type,
-                        context: item.context,
-                        element:
-                          item.element instanceof HTMLElement
-                            ? {
-                                tagName: item.element.tagName,
-                                className: item.element.className,
-                                id: item.element.id || "no-id",
-                                dataAttributes: Object.fromEntries(Object.entries(item.element.dataset)),
-                              }
-                            : item.element,
-                        data: item.data,
-                      })),
-                      selectedSectionIndex: $selectedSectionIndex,
-                      activeType: $activeSelectionType,
-                      activeContext: $activeSelectionContext,
-                      selectionCount: $selectionCount,
-                    },
-                    history: {
-                      canUndo: historyManager.canUndo(),
-                      canRedo: historyManager.canRedo(),
-                      historyLength: historyManager.getHistoryLength(),
-                      currentVersion: historyManager.getCurrentVersion(),
-                    },
-                    config: {
-                      mode: selectionManager.getConfig().mode,
-                      allowCrossContext: selectionManager.getConfig().allowCrossContext,
-                      styles: Object.fromEntries(
-                        Object.entries(selectionManager.getConfig().styles).map(([key, style]) => [
-                          key,
-                          {
-                            color: style.color,
-                            outline: style.outline,
-                          },
-                        ]),
-                      ),
-                    },
-                  };
-                  copyToClipboard(allData, 'all');
-                }}
-              >
-                {#if copiedStates['all']}
-                  <Check class="h-4 w-4 text-green-600" />
-                  <span class="text-green-600">Copied All!</span>
-                {:else}
-                  <Copy class="h-4 w-4" />
-                  <span>Copy All Debug Data</span>
-                {/if}
-              </button>
-            </div>
-            <!-- Debug State Display -->
-            <div class="space-y-4">
-              <div>
-                <div class="mb-2 flex items-center justify-between">
-                  <h3 class="text-sm font-semibold text-stone-700">Selection State</h3>
-                  <button
-                    class="flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors hover:bg-stone-200"
-                    onclick={() => copyToClipboard({
-                      selectedItems: Array.from($selectedItems).map((item) => ({
-                        id: item.id,
-                        type: item.type,
-                        context: item.context,
-                        element:
-                          item.element instanceof HTMLElement
-                            ? {
-                                tagName: item.element.tagName,
-                                className: item.element.className,
-                                id: item.element.id || "no-id",
-                                dataAttributes: Object.fromEntries(Object.entries(item.element.dataset)),
-                              }
-                            : item.element,
-                        data: item.data,
-                      })),
-                      selectedSectionIndex: $selectedSectionIndex,
-                      activeType: $activeSelectionType,
-                      activeContext: $activeSelectionContext,
-                      selectionCount: $selectionCount,
-                    }, 'selection')}
-                  >
-                    {#if copiedStates['selection']}
-                      <Check class="h-3 w-3 text-green-600" />
-                      <span class="text-green-600">Copied!</span>
-                    {:else}
-                      <Copy class="h-3 w-3" />
-                      <span>Copy</span>
-                    {/if}
-                  </button>
-                </div>
-                <pre class="overflow-x-auto rounded bg-stone-100 p-3 text-xs">{JSON.stringify(
-                    {
-                      selectedItems: Array.from($selectedItems).map((item) => ({
-                        id: item.id,
-                        type: item.type,
-                        context: item.context,
-                        element:
-                          item.element instanceof HTMLElement
-                            ? {
-                                tagName: item.element.tagName,
-                                className: item.element.className,
-                                id: item.element.id || "no-id",
-                                dataAttributes: Object.fromEntries(Object.entries(item.element.dataset)),
-                              }
-                            : item.element,
-                        data: item.data,
-                      })),
-                      selectedSectionIndex: $selectedSectionIndex,
-                      activeType: $activeSelectionType,
-                      activeContext: $activeSelectionContext,
-                      selectionCount: $selectionCount,
-                    },
-                    null,
-                    2,
-                  )}</pre>
-              </div>
-
-              <div>
-                <div class="mb-2 flex items-center justify-between">
-                  <h3 class="text-sm font-semibold text-stone-700">History State</h3>
-                  <button
-                    class="flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors hover:bg-stone-200"
-                    onclick={() => copyToClipboard({
-                      canUndo: historyManager.canUndo(),
-                      canRedo: historyManager.canRedo(),
-                      historyLength: historyManager.getHistoryLength(),
-                      currentVersion: historyManager.getCurrentVersion(),
-                    }, 'history')}
-                  >
-                    {#if copiedStates['history']}
-                      <Check class="h-3 w-3 text-green-600" />
-                      <span class="text-green-600">Copied!</span>
-                    {:else}
-                      <Copy class="h-3 w-3" />
-                      <span>Copy</span>
-                    {/if}
-                  </button>
-                </div>
-                <pre class="overflow-x-auto rounded bg-stone-100 p-3 text-xs">{JSON.stringify(
-                    {
-                      canUndo: historyManager.canUndo(),
-                      canRedo: historyManager.canRedo(),
-                      historyLength: historyManager.getHistoryLength(),
-                      currentVersion: historyManager.getCurrentVersion(),
-                    },
-                    null,
-                    2,
-                  )}</pre>
-              </div>
-
-              <div>
-                <div class="mb-2 flex items-center justify-between">
-                  <h3 class="text-sm font-semibold text-stone-700">Selection Manager Config</h3>
-                  <button
-                    class="flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors hover:bg-stone-200"
-                    onclick={() => copyToClipboard({
-                      mode: selectionManager.getConfig().mode,
-                      allowCrossContext: selectionManager.getConfig().allowCrossContext,
-                      styles: Object.fromEntries(
-                        Object.entries(selectionManager.getConfig().styles).map(([key, style]) => [
-                          key,
-                          {
-                            color: style.color,
-                            outline: style.outline,
-                          },
-                        ]),
-                      ),
-                    }, 'config')}
-                  >
-                    {#if copiedStates['config']}
-                      <Check class="h-3 w-3 text-green-600" />
-                      <span class="text-green-600">Copied!</span>
-                    {:else}
-                      <Copy class="h-3 w-3" />
-                      <span>Copy</span>
-                    {/if}
-                  </button>
-                </div>
-                <pre class="overflow-x-auto rounded bg-stone-100 p-3 text-xs">{JSON.stringify(
-                    {
-                      mode: selectionManager.getConfig().mode,
-                      allowCrossContext: selectionManager.getConfig().allowCrossContext,
-                      styles: Object.fromEntries(
-                        Object.entries(selectionManager.getConfig().styles).map(([key, style]) => [
-                          key,
-                          {
-                            color: style.color,
-                            outline: style.outline,
-                          },
-                        ]),
-                      ),
-                    },
-                    null,
-                    2,
-                  )}</pre>
-              </div>
-            </div>
-          </div>
+          <DebugPanel />
         {:else if activeTab === "inspector"}
           <div class="p-4">
             {#if !hasSelection}

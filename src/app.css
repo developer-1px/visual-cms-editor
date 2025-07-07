@@ -1,6 +1,4 @@
 @import "tailwindcss";
-@plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
 
 /* Minimal Typography */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
@@ -193,105 +191,91 @@ body {
   @apply bg-stone-300 hover:bg-stone-400;
 }
 
-/* Editor Component Styles */
-[data-editable] {
-  @apply cursor-pointer transition-all duration-150 relative;
-}
+/* ===== EDITOR SELECTION SYSTEM ===== */
 
-[data-editable]:hover {
-  @apply outline outline-1 outline-blue-500 outline-offset-1 bg-blue-500/10;
+/* 1. Base Styles - 기본 요소 스타일 */
+[data-editable] {
+  @apply relative cursor-pointer transition-all duration-150;
 }
 
 [data-repeatable] {
-  @apply cursor-pointer transition-all duration-150 relative;
+  @apply relative cursor-pointer transition-all duration-150;
 }
 
-[data-repeatable]:hover {
-  @apply outline-dashed outline-2 outline-green-500 outline-offset-4 bg-green-500/5;
-}
-
-/* Template Section Styles */
-.template-section {
-  @apply relative cursor-pointer transition-all duration-200 rounded-lg p-0.5 -m-0.5;
-}
-
-.template-section:hover {
-  @apply outline-dashed outline-2 outline-indigo-500 outline-offset-4 bg-indigo-500/[0.02];
-}
-
-.template-section.selected-section {
-  @apply outline outline-2 outline-indigo-500 outline-offset-4 bg-indigo-500/5 shadow-[0_0_0_1px_rgba(99,102,241,0.1)];
-}
-
-.template-section.selected-section:focus,
-.template-section.selected-section:focus-visible {
-  @apply outline outline-2 outline-indigo-500 outline-offset-4;
-}
-
-/* Prevent section hover when hovering on child elements */
-.template-section:has([data-editable]:hover),
-.template-section:has([data-repeatable]:hover) {
-  @apply outline-none bg-transparent;
-}
-
-/* Don't show section hover styles when a section is selected and hovering over elements */
-.template-section.selected-section:has([data-editable]:hover),
-.template-section.selected-section:has([data-repeatable]:hover) {
-  @apply outline outline-2 outline-indigo-500 bg-indigo-500/5;
-}
-
-/* Selection Styles - Model-driven approach */
-[data-selected="true"] {
-  @apply relative transition-all duration-200;
-}
-
-/* Text selection - 매우 강한 스타일 */
-[data-selected="true"][data-editable="text"] {
-  outline: 3px solid #3b82f6 !important;
-  outline-offset: 2px !important;
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  cursor: text;
-  border-radius: 4px;
-}
-
-/* Text elements always preserve whitespace and line breaks */
+/* Text elements always preserve whitespace */
 [data-editable="text"] {
   @apply whitespace-pre-wrap;
 }
 
+/* 2. Hover States - 선택되지 않은 상태에서의 호버 */
+[data-editable]:not([data-selected="true"]):not([data-editing="true"]):hover {
+  @apply outline outline-1 outline-offset-2 outline-blue-300/50;
+}
+
+[data-repeatable]:not([data-selected="true"]):hover {
+  @apply outline outline-2 outline-offset-4 outline-green-300/50 outline-dashed;
+}
+
+/* 3. Selected States - 선택된 상태 */
+/* Text selection */
+[data-editable="text"][data-selected="true"] {
+  @apply outline outline-2 outline-offset-2 outline-blue-500 bg-blue-50/50 rounded;
+  /* Figma-style hint: show that clicking again will edit */
+  cursor: text;
+}
+
+/* Add subtle hint that text is clickable to edit */
+[data-editable="text"][data-selected="true"]::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: pulse 2s ease-in-out infinite;
+}
+
 /* Image selection */
-[data-selected="true"][data-editable="image"] {
-  outline: 3px solid #fb923c !important;
-  outline-offset: 2px !important;
-  background-color: rgba(251, 146, 60, 0.1) !important;
-  border-radius: 4px;
+[data-editable="image"][data-selected="true"] {
+  @apply outline outline-2 outline-offset-2 outline-orange-500 bg-orange-50/50 rounded;
 }
 
 /* Icon selection */
-[data-selected="true"][data-editable="icon"] {
-  outline: 3px solid #a855f7 !important;
-  outline-offset: 2px !important;
-  background-color: rgba(168, 85, 247, 0.1) !important;
-  border-radius: 4px;
+[data-editable="icon"][data-selected="true"] {
+  @apply outline outline-2 outline-offset-2 outline-purple-500 bg-purple-50/50 rounded;
 }
 
 /* Link selection */
-[data-selected="true"][data-editable="link"] {
-  outline: 3px solid #06b6d4 !important;
-  outline-offset: 2px !important;
-  background-color: rgba(6, 182, 212, 0.1) !important;
-  border-radius: 4px;
+[data-editable="link"][data-selected="true"] {
+  @apply outline outline-2 outline-offset-2 outline-cyan-500 bg-cyan-50/50 rounded;
 }
 
 /* Repeatable selection */
-[data-selected="true"][data-repeatable] {
-  outline: 3px solid #10b981 !important;
-  outline-offset: 2px !important;
-  background-color: rgba(16, 185, 129, 0.1) !important;
-  border-radius: 4px;
+[data-repeatable][data-selected="true"] {
+  @apply outline outline-2 outline-offset-4 outline-green-500 bg-green-50/50 rounded;
 }
 
-/* Edit mode */
+/* 4. Edit Mode - 편집 중 상태 */
 [data-editing="true"] {
-  @apply outline outline-[3px] !outline-amber-500 outline-offset-[3px] bg-amber-500/[0.08] animate-pulse rounded;
+  @apply outline outline-2 outline-offset-2 outline-amber-500 bg-amber-50/50 rounded;
+  /* 편집 중에는 다른 선택 스타일 무시 */
+  outline: 2px solid #f59e0b !important;
+}
+
+/* 5. Section Styles - 섹션 관련 스타일 */
+.template-section {
+  @apply relative cursor-pointer transition-all duration-200;
+}
+
+/* Section hover - 자식 요소가 호버되지 않을 때만 */
+.template-section:not(:has([data-editable]:hover)):not(:has([data-repeatable]:hover)):not(.selected-section):hover {
+  @apply outline outline-2 outline-offset-8 outline-indigo-300/50 outline-dashed;
+}
+
+/* Selected section */
+.template-section.selected-section {
+  @apply outline outline-2 outline-offset-8 outline-indigo-500 bg-indigo-50/30;
 }

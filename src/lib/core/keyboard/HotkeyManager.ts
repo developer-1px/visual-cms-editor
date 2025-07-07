@@ -84,7 +84,11 @@ export class HotkeyManager {
 
     // 새 바인딩 적용
     if (Object.keys(activeBindings).length > 0) {
-      const unsubscribe = tinykeys(this.target, activeBindings)
+      // capture: false로 명시적 설정하여 버블링 단계에서 처리
+      // 이렇게 하면 contenteditable 요소에서 stopPropagation이 제대로 작동
+      const unsubscribe = tinykeys(this.target, activeBindings, {
+        capture: false
+      })
       this.unsubscribers.push(unsubscribe)
     }
   }
@@ -104,20 +108,20 @@ export class HotkeyManager {
 
   // 디버그 정보
   debug(): void {
-    console.log("=== HotkeyManager Debug ===")
-    console.log("Current Context:", this.context)
+    // === HotkeyManager Debug ===
+    // Current Context: this.context
 
     const activeKeymaps = this.keymaps
       .filter((k) => k.condition(this.context))
       .sort((a, b) => (b.priority || 0) - (a.priority || 0))
 
-    console.log("Active Keymaps (by priority):")
+    // Active Keymaps (by priority):
     activeKeymaps.forEach((km) => {
-      console.log(`  - Priority ${km.priority || 0}: ${Object.keys(km.bindings).join(", ")}`)
+      // - Priority ${km.priority || 0}: ${Object.keys(km.bindings).join(", ")}
     })
 
-    console.log("Final Active Bindings:", Object.keys(this.getActiveBindings()))
-    console.log("========================")
+    // Final Active Bindings: Object.keys(this.getActiveBindings())
+    // ========================
   }
 }
 

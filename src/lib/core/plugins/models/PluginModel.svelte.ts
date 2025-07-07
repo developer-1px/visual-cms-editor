@@ -28,12 +28,12 @@ export interface PluginModel<T = unknown> {
 }
 
 // 기본 플러그인 모델 클래스
-export class BasePluginModel<T = unknown> implements PluginModel<T> {
+export class BasePluginModel<T = unknown> implements PluginModel<T | null> {
   id: string
   type: string
-  state = $state<PluginState<T>>({
+  state = $state<PluginState<T | null>>({
     isEditing: false,
-    value: null as T,
+    value: null,
     isDirty: false,
     errors: [],
   })
@@ -55,7 +55,7 @@ export class BasePluginModel<T = unknown> implements PluginModel<T> {
     this.state.isEditing = false
   }
 
-  getValue(): T {
+  getValue(): T | null {
     return this.state.value
   }
 
@@ -107,7 +107,11 @@ export class TextPluginModel extends BasePluginModel<string> {
   }
 
   validate(): { valid: boolean; message?: string } {
-    const value = this.state.value as string
+    const value = this.state.value
+    if (!value) {
+      return { valid: true } // null/empty is valid
+    }
+    
     const maxLength = 1000 // 제약사항은 별도로 관리
 
     if (value.length > maxLength) {
@@ -135,7 +139,7 @@ export class ImagePluginModel extends BasePluginModel<string> {
   }
 
   validate(): { valid: boolean; message?: string } {
-    const value = this.state.value as string
+    const value = this.state.value
 
     if (!value) {
       return { valid: true } // 빈 이미지 허용
@@ -183,7 +187,12 @@ export class LinkPluginModel extends BasePluginModel<LinkValue> {
   }
 
   validate(): { valid: boolean; message?: string } {
-    const { href } = this.state.value
+    const value = this.state.value
+    if (!value) {
+      return { valid: true } // null is valid
+    }
+    
+    const { href } = value
 
     if (!href || href === "#") {
       return { valid: true } // 빈 링크 허용

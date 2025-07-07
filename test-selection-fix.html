@@ -1,111 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
     <title>Test Selection Fix</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 40px;
-            background: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .test-element {
-            padding: 10px;
-            margin: 10px 0;
-            border: 2px solid transparent;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-        
-        /* Test cases for data-selected attribute */
-        [data-selected="true"] {
-            border-color: #f59e0b;
-            background-color: rgba(245, 158, 11, 0.1);
-        }
-        
-        [data-selected="false"] {
-            border-color: green;
-            background-color: rgba(0, 255, 0, 0.1);
-        }
-        
-        [data-selected="null"] {
-            border-color: red;
-            background-color: rgba(255, 0, 0, 0.1);
-        }
-        
-        [data-selected=""] {
-            border-color: purple;
-            background-color: rgba(128, 0, 128, 0.1);
-        }
-        
-        /* Only true should show selection */
-        [data-selected]:not([data-selected="true"]) {
-            font-style: italic;
-        }
-        
-        .status {
-            margin-top: 20px;
-            padding: 10px;
-            background: #f0f0f0;
-            border-radius: 4px;
-        }
+      body {
+        font-family: Arial, sans-serif;
+        padding: 40px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .test-element {
+        padding: 10px;
+        margin: 10px 0;
+        border: 2px solid transparent;
+        transition: all 0.2s;
+        cursor: pointer;
+      }
+
+      /* Test cases for data-selected attribute */
+      [data-selected="true"] {
+        border-color: #f59e0b;
+        background-color: rgba(245, 158, 11, 0.1);
+      }
+
+      [data-selected="false"] {
+        border-color: green;
+        background-color: rgba(0, 255, 0, 0.1);
+      }
+
+      [data-selected="null"] {
+        border-color: red;
+        background-color: rgba(255, 0, 0, 0.1);
+      }
+
+      [data-selected=""] {
+        border-color: purple;
+        background-color: rgba(128, 0, 128, 0.1);
+      }
+
+      /* Only true should show selection */
+      [data-selected]:not([data-selected="true"]) {
+        font-style: italic;
+      }
+
+      .status {
+        margin-top: 20px;
+        padding: 10px;
+        background: #f0f0f0;
+        border-radius: 4px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <h1>Testing data-selected Attribute Values</h1>
-        
-        <div class="test-element" data-selected="true">
-            data-selected="true" - Should show orange border (selected)
-        </div>
-        
-        <div class="test-element" data-selected="false">
-            data-selected="false" - Should show green border (incorrect behavior if visible)
-        </div>
-        
-        <div class="test-element" data-selected="null">
-            data-selected="null" - Should show red border (incorrect behavior if visible)
-        </div>
-        
-        <div class="test-element" data-selected="">
-            data-selected="" - Should show purple border (empty string)
-        </div>
-        
-        <div class="test-element">
-            No data-selected attribute - Should show no special styling
-        </div>
-        
-        <div class="status">
-            <h2>Expected Results:</h2>
-            <ul>
-                <li>Only "true" should show orange selection styling</li>
-                <li>"false", "null", and empty string should all show error styling (they're being treated as truthy)</li>
-                <li>No attribute should show default styling</li>
-            </ul>
-            
-            <h2>Fix Applied:</h2>
-            <p>Changed from <code>data-selected={isSelected || null}</code> to <code>data-selected={isSelected ? "true" : null}</code></p>
-            <p>This ensures the attribute is only set to "true" when selected, or removed entirely when not selected.</p>
-        </div>
+      <h1>Testing data-selected Attribute Values</h1>
+
+      <div
+        class="test-element"
+        data-selected="true"
+      >
+        data-selected="true" - Should show orange border (selected)
+      </div>
+
+      <div
+        class="test-element"
+        data-selected="false"
+      >
+        data-selected="false" - Should show green border (incorrect behavior if visible)
+      </div>
+
+      <div
+        class="test-element"
+        data-selected="null"
+      >
+        data-selected="null" - Should show red border (incorrect behavior if visible)
+      </div>
+
+      <div
+        class="test-element"
+        data-selected=""
+      >
+        data-selected="" - Should show purple border (empty string)
+      </div>
+
+      <div class="test-element">No data-selected attribute - Should show no special styling</div>
+
+      <div class="status">
+        <h2>Expected Results:</h2>
+        <ul>
+          <li>Only "true" should show orange selection styling</li>
+          <li>"false", "null", and empty string should all show error styling (they're being treated as truthy)</li>
+          <li>No attribute should show default styling</li>
+        </ul>
+
+        <h2>Fix Applied:</h2>
+        <p>
+          Changed from <code>data-selected={isSelected || null}</code> to
+          <code>data-selected={isSelected ? "true" : null}</code>
+        </p>
+        <p>This ensures the attribute is only set to "true" when selected, or removed entirely when not selected.</p>
+      </div>
     </div>
-    
+
     <script>
-        // Test the CSS selector behavior
-        const elements = document.querySelectorAll('[data-selected]');
-        console.log('Elements with data-selected attribute:', elements.length);
-        
-        elements.forEach(el => {
-            const value = el.getAttribute('data-selected');
-            console.log(`data-selected="${value}" - matches [data-selected="true"]:`, 
-                el.matches('[data-selected="true"]'));
-        });
+      // Test the CSS selector behavior
+      const elements = document.querySelectorAll("[data-selected]")
+      console.log("Elements with data-selected attribute:", elements.length)
+
+      elements.forEach((el) => {
+        const value = el.getAttribute("data-selected")
+        console.log(`data-selected="${value}" - matches [data-selected="true"]:`, el.matches('[data-selected="true"]'))
+      })
     </script>
-</body>
+  </body>
 </html>

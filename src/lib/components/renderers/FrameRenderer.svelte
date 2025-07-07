@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { TemplateElement } from "$lib/core/models/TemplateModels"
-  import { isFrameModel } from "$lib/core/models/TemplateModels"
-  import { selectedElements } from "$lib/core/selection/SelectionManager"
-  import { modelElementRegistry } from "$lib/core/selection/ModelSelectionManager"
+  import { isFrameModel, isTextModel } from "$lib/core/models/TemplateModels"
+  import { selectedElements, modelElementRegistry } from "$lib/core/selection"
   import EditableRenderer from "./EditableRenderer.svelte"
   import { onDestroy } from "svelte"
 
@@ -29,9 +28,7 @@
   })
 
   // 선택 상태 추적 - Registry 사용
-  let isSelected = $derived(
-    elementRef ? $selectedElements.has(elementRef) : false
-  )
+  let isSelected = $derived(elementRef ? $selectedElements.has(elementRef) : false)
 
   // 스타일 문자열 생성
   function buildStyleString(styles?: Record<string, string>): string {
@@ -43,17 +40,24 @@
 
   // 클릭 핸들러
   function handleClick(e: MouseEvent) {
-    // data-repeatable 속성이 있으면 클릭 이벤트 전달
-    if (element.attributes?.["data-repeatable"] !== undefined) {
-      console.log("🔵 FrameRenderer: Repeatable element clicked", {
-        tagName: element.tagName,
-        className: element.className,
-        attributes: element.attributes,
-      })
+    // data-editable="link"인 경우 기본 동작 방지
+    if (element.attributes?.["data-editable"] === "link") {
+      e.preventDefault()
+    }
+    
+    // data-repeatable 또는 data-editable 속성이 있으면 클릭 이벤트 전달
+    if (element.attributes?.["data-repeatable"] !== undefined || element.attributes?.["data-editable"] !== undefined) {
+      // Element clicked - forward event to parent handler
+      // This allows elements to be selected and managed
       if (onElementClick) {
         onElementClick(e)
       }
     }
+  }
+  
+  // 빈 텍스트 모델 체크
+  function isEmptyTextModel(element: TemplateElement): boolean {
+    return isTextModel(element) && (!element.content || element.content.trim() === "")
   }
 </script>
 
@@ -68,7 +72,8 @@
     {...element.attributes}
     data-selected={isSelected ? "true" : undefined}
     data-selection-type={isSelected && element.attributes?.["data-repeatable"] !== undefined ? "repeatable" : undefined}
-    onclick={element.attributes?.["data-repeatable"] !== undefined ? handleClick : undefined}
+    data-editable={element.attributes?.["data-repeatable"] !== undefined ? "repeatable" : element.attributes?.["data-editable"]}
+    onclick={element.attributes?.["data-repeatable"] !== undefined || element.attributes?.["data-editable"] !== undefined ? handleClick : undefined}
   >
     {#each element.children as child (child.id)}
       {#if isFrameModel(child)}
@@ -76,7 +81,7 @@
           element={child}
           {onElementClick}
         />
-      {:else}
+      {:else if !isEmptyTextModel(child)}
         <EditableRenderer
           element={child}
           {onElementClick}

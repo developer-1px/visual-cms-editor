@@ -25,10 +25,7 @@
     "@sveltejs/adapter-static": "^3.0.8",
     "@sveltejs/kit": "^2.16.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
-    "@tailwindcss/forms": "^0.5.9",
-    "@tailwindcss/typography": "^0.5.15",
     "@tailwindcss/vite": "^4.0.0",
-    "@testing-library/svelte": "^5.2.8",
     "@vitest/browser": "^3.2.3",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
@@ -36,6 +33,7 @@
     "gh-pages": "^6.3.0",
     "globals": "^16.0.0",
     "jsdom": "^26.1.0",
+    "knip": "^5.61.3",
     "playwright": "^1.53.0",
     "prettier": "^3.4.2",
     "prettier-plugin-svelte": "^3.3.3",
@@ -53,7 +51,6 @@
     "vitest-browser-svelte": "^0.1.0"
   },
   "dependencies": {
-    "@floating-ui/dom": "^1.7.2",
     "@inlang/paraglide-js": "^2.0.0",
     "loro-crdt": "^1.5.9",
     "lucide-svelte": "^0.525.0"

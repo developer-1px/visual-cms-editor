@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { EditableModel } from "$lib/core/models/TemplateModels"
   import { isTextModel, isImageModel, isIconModel, isLinkModel } from "$lib/core/models/TemplateModels"
-  import { selectedElements } from "$lib/core/selection/SelectionManager"
+  import { selectedElements } from "$lib/core/selection"
   import ModelTextPlugin from "../plugins/ModelTextPlugin.svelte"
   import ModelImagePlugin from "../plugins/ModelImagePlugin.svelte"
   import ModelIconPlugin from "../plugins/ModelIconPlugin.svelte"

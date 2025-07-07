@@ -2,7 +2,7 @@
   import { onMount } from "svelte"
   import { Layers, Eye, GripVertical, Plus } from "lucide-svelte"
   import type { Template } from "$lib/core/templates/templates"
-  import { selectedSectionIndex } from "$lib/core/selection/SelectionManager"
+  import { selectedSectionIndex } from "$lib/core/selection"
 
   export let isOpen: boolean = true
   export let templates: Template[] = []
@@ -91,7 +91,7 @@
       <div class="flex-1 space-y-1 overflow-y-auto p-1.5">
         {#each templates.filter((t) => t && t.html) as template, index (`${template.id}-${index}`)}
           <div
-            class="group relative cursor-pointer overflow-hidden rounded border bg-stone-50 transition-all duration-200 hover:shadow-sm hover:scale-[1.02] {dragOverIndex ===
+            class="group relative cursor-pointer overflow-hidden rounded border bg-stone-50 transition-all duration-200 hover:scale-[1.02] hover:shadow-sm {dragOverIndex ===
             index
               ? 'border-blue-500'
               : $selectedSectionIndex === index
@@ -125,11 +125,9 @@
             </div>
 
             <!-- Preview Container -->
-            <div
-              class="relative overflow-hidden bg-stone-50 h-[50px]"
-            >
+            <div class="relative h-[50px] overflow-hidden bg-stone-50">
               <div
-                class="h-auto pointer-events-none select-none origin-top scale-[0.08] transform absolute left-1/2 -translate-x-1/2 [&_*::-webkit-scrollbar]:hidden [&_img]:max-w-full [&_img]:h-auto [&_[class*='h-']]:!h-auto [&_[class*='h-']]:!min-h-0 [&_*]:!text-[6px] [&_*]:!leading-[1.1]"
+                class="pointer-events-none absolute left-1/2 h-auto origin-top -translate-x-1/2 scale-[0.08] transform select-none [&_*]:!text-[6px] [&_*]:!leading-[1.1] [&_*::-webkit-scrollbar]:hidden [&_[class*='h-']]:!h-auto [&_[class*='h-']]:!min-h-0 [&_img]:h-auto [&_img]:max-w-full"
                 style="width: 1250%;"
               >
                 <div
@@ -154,4 +152,3 @@
     </div>
   </div>
 </div>
-

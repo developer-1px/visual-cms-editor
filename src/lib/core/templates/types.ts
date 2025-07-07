@@ -1,26 +1,8 @@
-export interface Template {
-  id: string
-  name: string
-  description: string
-  category: "hero" | "features" | "cta" | "content" | "testimonial" | "pricing"
-  html: string
-  thumbnail?: string
-  editableElements: EditableElement[]
-}
+/**
+ * Template System Types
+ *
+ * 템플릿 시스템 관련 타입 정의
+ */
 
-export interface EditableElement {
-  selector: string
-  type: "text" | "image" | "icon" | "link"
-  defaultValue: string
-  constraints?: {
-    maxLength?: number
-    minLength?: number
-    allowedFormats?: string[]
-  }
-}
-
-export interface TemplateToComponentOptions {
-  preserveStyles?: boolean
-  addEditableMarkers?: boolean
-  generateProps?: boolean
-}
+// Re-export from entities for backwards compatibility
+export * from "$lib/entities/template/types"

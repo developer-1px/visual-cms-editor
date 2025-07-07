@@ -1,11 +1,45 @@
 // 에디터 키맵 정의 (tinykeys 버전)
 import type { ConditionalKeymap } from "../HotkeyManager"
 import { historyManager } from "$lib/core/history"
-import { selectionManager, selectedElements } from "$lib/core/selection/SelectionManager"
+import { selectionManager, selectedElements } from "$lib/core/selection"
 import { pluginStore } from "$lib/core/plugins/models/PluginStore.svelte"
-import { editablePluginManager } from "$lib/core/plugins"
-import { selectionActionManager } from "$lib/core/actions"
+import { modelBasedPluginManager } from "$lib/core/plugins"
+import { selectionCommandManager } from "$lib/core/commands"
 import { get } from "svelte/store"
+
+// Helper function to determine element type
+const getElementType = (element: HTMLElement): string => {
+  if (element.hasAttribute("data-repeatable")) {
+    return "repeatable"
+  } else if (element.hasAttribute("data-editable")) {
+    return element.getAttribute("data-editable") || "text"
+  }
+  return "text" // Default to text
+}
+
+// Helper function to execute command on selected element
+const executeCommandOnSelected = async (command: string) => {
+  const selected = get(selectedElements)
+  if (selected.size > 0) {
+    const element = Array.from(selected)[0]
+    const type = getElementType(element)
+    await selectionCommandManager.executeCommand(command as any, element, type)
+  }
+}
+
+// Helper function to create command handler
+const createCommandHandler = (command: string) => async (e: KeyboardEvent) => {
+  e.preventDefault()
+  // [Hotkey] ${command}
+  await executeCommandOnSelected(command)
+}
+
+// Helper function to check if element allows default behavior
+const allowsDefaultBehavior = (element: HTMLElement): boolean => {
+  return element.hasAttribute("contenteditable") || 
+         element.tagName === "INPUT" || 
+         element.tagName === "TEXTAREA"
+}
 
 // 기본 편집 키맵 (항상 활성)
 export const globalKeymap: ConditionalKeymap = {
@@ -14,22 +48,22 @@ export const globalKeymap: ConditionalKeymap = {
   bindings: {
     "$mod+z": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Undo")
+      // [Hotkey] Undo
       historyManager.undo()
     },
     "$mod+Shift+z": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Redo")
+      // [Hotkey] Redo
       historyManager.redo()
     },
     "$mod+y": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Redo (Ctrl+Y)")
+      // [Hotkey] Redo (Ctrl+Y)
       historyManager.redo()
     },
     "Escape": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Escape")
+      // [Hotkey] Escape
 
       // 편집 중이면 편집 종료, 아니면 선택 해제
       const editingModel = pluginStore.getEditingModel()
@@ -49,124 +83,30 @@ export const selectionKeymap: ConditionalKeymap = {
   bindings: {
     "Enter": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Enter - Start Edit")
+      // [Hotkey] Enter - Start Edit
 
       const selected = get(selectedElements)
       if (selected.size === 1) {
         const element = Array.from(selected)[0]
-        // DOM API 방식의 플러그인 매니저 사용
-        editablePluginManager.handleDoubleClick(element, new MouseEvent("dblclick"))
-      }
-    },
-    "Delete": async (e) => {
-      e.preventDefault()
-      console.log("[Hotkey] Delete")
-
-      const selected = get(selectedElements)
-      if (selected.size > 0) {
-        const element = Array.from(selected)[0]
-        // Determine the type based on element attributes
-        let type = "text" // Default to text
-        if (element.hasAttribute("data-repeatable")) {
-          type = "repeatable"
-        } else if (element.hasAttribute("data-editable")) {
-          type = element.getAttribute("data-editable") || "text"
+        const type = getElementType(element)
+        // Model 기반 플러그인으로 편집 시작
+        const model = modelBasedPluginManager.getOrCreateModel(element, type)
+        if (model) {
+          model.startEdit()
         }
-        console.log("[Hotkey] Delete - element type:", type)
-        await selectionActionManager.executeAction("delete", element, type)
       }
     },
-    "Backspace": async (e) => {
-      e.preventDefault()
-      console.log("[Hotkey] Backspace (Delete)")
-
-      const selected = get(selectedElements)
-      if (selected.size > 0) {
-        const element = Array.from(selected)[0]
-        // Determine the type based on element attributes
-        let type = "text" // Default to text
-        if (element.hasAttribute("data-repeatable")) {
-          type = "repeatable"
-        } else if (element.hasAttribute("data-editable")) {
-          type = element.getAttribute("data-editable") || "text"
-        }
-        console.log("[Hotkey] Backspace - element type:", type)
-        await selectionActionManager.executeAction("delete", element, type)
-      }
-    },
-    "$mod+c": async (e) => {
-      e.preventDefault()
-      console.log("[Hotkey] Copy")
-
-      const selected = get(selectedElements)
-      if (selected.size > 0) {
-        const element = Array.from(selected)[0]
-        // Determine the type based on element attributes
-        let type = "text" // Default to text
-        if (element.hasAttribute("data-repeatable")) {
-          type = "repeatable"
-        } else if (element.hasAttribute("data-editable")) {
-          type = element.getAttribute("data-editable") || "text"
-        }
-        console.log("[Hotkey] Copy - element type:", type)
-        await selectionActionManager.executeAction("copy", element, type)
-      }
-    },
-    "$mod+x": async (e) => {
-      e.preventDefault()
-      console.log("[Hotkey] Cut")
-
-      const selected = get(selectedElements)
-      if (selected.size > 0) {
-        const element = Array.from(selected)[0]
-        // Determine the type based on element attributes
-        let type = "text" // Default to text
-        if (element.hasAttribute("data-repeatable")) {
-          type = "repeatable"
-        } else if (element.hasAttribute("data-editable")) {
-          type = element.getAttribute("data-editable") || "text"
-        }
-        console.log("[Hotkey] Cut - element type:", type)
-        await selectionActionManager.executeAction("cut", element, type)
-      }
-    },
-    "$mod+v": async (e) => {
-      e.preventDefault()
-      console.log("[Hotkey] Paste")
-
-      const selected = get(selectedElements)
-      if (selected.size > 0) {
-        const element = Array.from(selected)[0]
-        // Determine the type based on element attributes
-        let type = "text" // Default to text
-        if (element.hasAttribute("data-repeatable")) {
-          type = "repeatable"
-        } else if (element.hasAttribute("data-editable")) {
-          type = element.getAttribute("data-editable") || "text"
-        }
-        console.log("[Hotkey] Paste - element type:", type)
-        await selectionActionManager.executeAction("paste", element, type)
-      }
-    },
+    "Delete": createCommandHandler("delete"),
+    "Backspace": createCommandHandler("delete"),
+    "$mod+c": createCommandHandler("copy"),
+    "$mod+x": createCommandHandler("cut"),
+    "$mod+v": createCommandHandler("paste"),
     "$mod+d": async (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Duplicate")
-
-      const selected = get(selectedElements)
-      if (selected.size > 0) {
-        const element = Array.from(selected)[0]
-        // Determine the type based on element attributes
-        let type = "text" // Default to text
-        if (element.hasAttribute("data-repeatable")) {
-          type = "repeatable"
-        } else if (element.hasAttribute("data-editable")) {
-          type = element.getAttribute("data-editable") || "text"
-        }
-        console.log("[Hotkey] Duplicate - element type:", type)
-        // Copy then paste
-        await selectionActionManager.executeAction("copy", element, type)
-        await selectionActionManager.executeAction("paste", element, type)
-      }
+      // [Hotkey] Duplicate
+      // Copy then paste
+      await executeCommandOnSelected("copy")
+      await executeCommandOnSelected("paste")
     },
   },
 }
@@ -178,19 +118,40 @@ export const textEditingKeymap: ConditionalKeymap = {
   bindings: {
     "Escape": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Stop Text Editing")
+      // [Hotkey] Stop Text Editing
       pluginStore.stopAllEditing()
+    },
+    // 텍스트 편집 중 Enter는 기본 동작(줄바꿈) 허용
+    "Enter": (e) => {
+      // 이벤트 전파를 중단하여 다른 키맵이 실행되지 않도록 함
+      e.stopPropagation()
+    },
+    // 텍스트 편집 중 스페이스는 기본 동작 허용
+    " ": (e) => {
+      // 스페이스는 contenteditable에서 기본 동작 사용
+      // 이벤트 버블링 중지하여 section keymap으로 전파 방지
+      e.stopPropagation()
     },
     // 텍스트 편집 중에는 대부분의 키를 기본 동작으로
     "$mod+b": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Bold (not implemented)")
+      // [Hotkey] Bold (not implemented)
     },
     "$mod+i": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Italic (not implemented)")
+      // [Hotkey] Italic (not implemented)
     },
   },
+}
+
+// Helper function to create navigation handler
+const createNavigationHandler = (direction: string) => (e: KeyboardEvent) => {
+  const target = e.target as HTMLElement
+  if (allowsDefaultBehavior(target)) return
+  
+  e.preventDefault()
+  // [Hotkey] Navigate ${direction}
+  // TODO: Navigate ${direction}
 }
 
 // 네비게이션 키맵 (편집 중이 아닐 때)
@@ -198,93 +159,52 @@ export const navigationKeymap: ConditionalKeymap = {
   condition: (ctx) => !ctx.isEditing,
   priority: 5,
   bindings: {
-    "Tab": (e) => {
-      // contenteditable 요소에서는 기본 동작 허용
-      const target = e.target as HTMLElement
-      if (target.hasAttribute("contenteditable")) {
-        return
-      }
-      e.preventDefault()
-      console.log("[Hotkey] Next Element")
-      // TODO: 다음 요소로 이동
-    },
-    "Shift+Tab": (e) => {
-      // contenteditable 요소에서는 기본 동작 허용
-      const target = e.target as HTMLElement
-      if (target.hasAttribute("contenteditable")) {
-        return
-      }
-      e.preventDefault()
-      console.log("[Hotkey] Previous Element")
-      // TODO: 이전 요소로 이동
-    },
-    "ArrowUp": (e) => {
-      const target = e.target as HTMLElement
-      // contenteditable이나 input 요소에서는 기본 동작 허용
-      if (target.hasAttribute("contenteditable") || target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
-        return
-      }
-      e.preventDefault()
-      console.log("[Hotkey] Move Up")
-      // TODO: 위로 이동
-    },
-    "ArrowDown": (e) => {
-      const target = e.target as HTMLElement
-      // contenteditable이나 input 요소에서는 기본 동작 허용
-      if (target.hasAttribute("contenteditable") || target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
-        return
-      }
-      e.preventDefault()
-      console.log("[Hotkey] Move Down")
-      // TODO: 아래로 이동
-    },
-    "ArrowLeft": (e) => {
-      const target = e.target as HTMLElement
-      // contenteditable이나 input 요소에서는 기본 동작 허용
-      if (target.hasAttribute("contenteditable") || target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
-        return
-      }
-      e.preventDefault()
-      console.log("[Hotkey] Move Left")
-      // TODO: 왼쪽으로 이동
-    },
-    "ArrowRight": (e) => {
-      const target = e.target as HTMLElement
-      // contenteditable이나 input 요소에서는 기본 동작 허용
-      if (target.hasAttribute("contenteditable") || target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
-        return
-      }
-      e.preventDefault()
-      console.log("[Hotkey] Move Right")
-      // TODO: 오른쪽으로 이동
-    },
+    "Tab": createNavigationHandler("Next Element"),
+    "Shift+Tab": createNavigationHandler("Previous Element"),
+    "ArrowUp": createNavigationHandler("Up"),
+    "ArrowDown": createNavigationHandler("Down"),
+    "ArrowLeft": createNavigationHandler("Left"),
+    "ArrowRight": createNavigationHandler("Right"),
   },
+}
+
+// Helper function to handle section selection
+const handleSectionSelection = (keyName: string) => (e: KeyboardEvent) => {
+  const target = e.target as HTMLElement
+  
+  // For space key, check for default behavior first
+  if (keyName === "Space" && allowsDefaultBehavior(target)) {
+    return
+  }
+  
+  // template-section에 포커스가 있을 때만
+  if (target.classList.contains("template-section")) {
+    // For space key, additional checks
+    if (keyName === "Space" && 
+        (target.querySelector('[contenteditable="true"]') ||
+         target.querySelector('[contenteditable="plaintext-only"]'))) {
+      return
+    }
+    
+    e.preventDefault()
+    // [Hotkey] Select Section via ${keyName}
+    target.click()
+  }
 }
 
 // 섹션 키맵 (포커스된 섹션에서 작동)
 export const sectionKeymap: ConditionalKeymap = {
-  condition: (ctx) => !ctx.isEditing,
+  condition: (ctx) => {
+    // 편집 중이 아니고, contenteditable 요소가 포커스되지 않았을 때만 활성화
+    const activeElement = document.activeElement as HTMLElement
+    const isContentEditable = activeElement?.hasAttribute("contenteditable") || 
+                             activeElement?.getAttribute("contenteditable") === "plaintext-only"
+    return !ctx.isEditing && !isContentEditable
+  },
   priority: 8,
   bindings: {
-    "Enter": (e) => {
-      const target = e.target as HTMLElement
-      // template-section에 포커스가 있을 때만
-      if (target.classList.contains("template-section")) {
-        e.preventDefault()
-        console.log("[Hotkey] Select Section via Enter")
-        target.click()
-      }
-    },
-    " ": (e) => {
-      // Space key
-      const target = e.target as HTMLElement
-      // template-section에 포커스가 있을 때만
-      if (target.classList.contains("template-section")) {
-        e.preventDefault()
-        console.log("[Hotkey] Select Section via Space")
-        target.click()
-      }
-    },
+    "Enter": handleSectionSelection("Enter"),
+    " ": handleSectionSelection("Space"),
   },
 }
 
@@ -295,15 +215,15 @@ export const developerKeymap: ConditionalKeymap = {
   bindings: {
     "$mod+Shift+d": async (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Debug Info")
+      // [Hotkey] Debug Info
 
       // 선택된 요소 정보
       const selected = get(selectedElements)
-      console.log("Selected Elements:", Array.from(selected))
+      // Selected Elements: Array.from(selected)
 
       // 편집 중인 모델
       const editingModel = pluginStore.getEditingModel()
-      console.log("Editing Model:", editingModel)
+      // Editing Model: editingModel
 
       // 키맵 디버그
       const { hotkeyManager } = await import("../HotkeyManager")
@@ -311,7 +231,7 @@ export const developerKeymap: ConditionalKeymap = {
     },
     "$mod+Shift+k": (e) => {
       e.preventDefault()
-      console.log("[Hotkey] Show Keyboard Shortcuts")
+      // [Hotkey] Show Keyboard Shortcuts
       // TODO: 키보드 단축키 목록 표시
     },
   },

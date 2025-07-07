@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { TextModel } from "$lib/core/models/TemplateModels"
-  import { TextPluginModel } from "$lib/core/plugins/models/PluginModel.svelte"
-  import { modelElementRegistry } from "$lib/core/selection/ModelSelectionManager"
+  import { modelElementRegistry } from "$lib/core/selection"
   import { onDestroy } from "svelte"
+  import { startEditing, stopEditing, editingElementId } from "$lib/core/commands/stores"
 
   interface Props {
     model: TextModel
@@ -12,141 +12,120 @@
 
   let { model, isSelected = false, onElementClick }: Props = $props()
 
-  // TextPluginModel과 연결
-  let pluginModel = new TextPluginModel(model.content)
   let elementRef: HTMLElement
+  let isEditing = $state(false)
 
-  // Model-Element Registry 등록
+  // Registry 등록/해제
   $effect(() => {
     if (elementRef && model) {
       modelElementRegistry.register(model, elementRef)
     }
   })
 
-  // 컴포넌트 제거시 Registry에서 해제
   onDestroy(() => {
     if (model) {
       modelElementRegistry.unregister(model)
     }
   })
 
-  // Model 동기화
-  $effect(() => {
-    if (elementRef && !pluginModel.element) {
-      pluginModel.element = elementRef
-    }
-
-    // content 변경 시 동기화
-    if (pluginModel.state.value !== model.content) {
-      pluginModel.setValue(model.content)
-    }
-  })
-
-  // Model 변경 이벤트 수신
-  $effect(() => {
-    if (!elementRef) return
-
-    const handleModelChange = (e: CustomEvent) => {
-      if (e.detail.model === model && e.detail.content !== undefined) {
-        pluginModel.setValue(e.detail.content)
-        model.content = e.detail.content
-      }
-    }
-
-    elementRef.addEventListener("modelContentChanged", handleModelChange)
-
-    return () => {
-      elementRef.removeEventListener("modelContentChanged", handleModelChange)
-    }
-  })
-
-  // 편집 모드와 선택 모드 처리
-  $effect(() => {
-    if (!elementRef) return
-
-    if (pluginModel.state.isEditing) {
-      // 편집 모드가 가장 우선
+  // 편집 모드 제어
+  function startEdit() {
+    isEditing = true
+    startEditing(model.id)
+    
+    if (elementRef) {
       elementRef.setAttribute("contenteditable", "plaintext-only")
       elementRef.setAttribute("data-editing", "true")
-      elementRef.style.whiteSpace = "pre-wrap"
       elementRef.focus()
-    } else {
-      // 편집 모드가 아닐 때
-      elementRef.removeAttribute("data-editing")
-      elementRef.style.whiteSpace = ""
-
-      // 선택 모드일 때는 contenteditable="false"
-      if (isSelected) {
-        elementRef.setAttribute("contenteditable", "false")
-      } else {
-        elementRef.removeAttribute("contenteditable")
-      }
-    }
-  })
-
-  function handleClick(e: MouseEvent) {
-    // Prevent event propagation to avoid document click handler
-    e.stopPropagation()
-
-    console.log("🟢 ModelTextPlugin handleClick:", {
-      isSelected,
-      element: elementRef?.tagName,
-      modelId: model.id,
-      content: model.content,
-      hasOnElementClick: !!onElementClick,
-    })
-
-    // Always call the parent click handler first (for selection)
-    if (onElementClick && elementRef) {
-      console.log("🔄 Calling parent onElementClick from ModelTextPlugin", {
-        elementRef,
-        elementId: elementRef.id,
-      })
-      // Pass the element as the event target/currentTarget
-      const evt = new MouseEvent("click", e)
-      Object.defineProperties(evt, {
-        target: { value: elementRef, writable: false },
-        currentTarget: { value: elementRef, writable: false },
-      })
-      onElementClick(evt)
-    }
-
-    // If already selected, also start editing
-    if (isSelected) {
-      console.log("🖊️ Starting edit mode since element is already selected")
-      pluginModel.startEdit()
     }
   }
 
-  function handleDoubleClick() {
-    pluginModel.handleDoubleClick()
+  function stopEdit() {
+    if (elementRef) {
+      const newText = elementRef.textContent || ""
+      if (newText !== model.content) {
+        model.content = newText
+        
+        // 히스토리 이벤트
+        const historyEvent = new CustomEvent("textChanged", {
+          detail: { element: elementRef, text: newText },
+        })
+        document.dispatchEvent(historyEvent)
+      }
+      
+      elementRef.removeAttribute("contenteditable")
+      elementRef.removeAttribute("data-editing")
+      elementRef.textContent = model.content
+    }
+    
+    isEditing = false
+    stopEditing()
+  }
+
+  function handleClick(e: MouseEvent) {
+    // 편집 중이면 커서 이동만
+    if (isEditing) return
+    
+    e.stopPropagation()
+
+    // 클릭 전에 이미 선택된 상태였는지 확인
+    const wasAlreadySelected = isSelected
+
+    // 항상 먼저 선택 이벤트 처리
+    if (onElementClick) onElementClick(e)
+
+    // 이미 선택된 상태에서 다시 클릭하면 편집 모드로 전환
+    if (wasAlreadySelected && !$editingElementId) {
+      startEdit()
+    }
+    // 다른 요소가 편집 중이면 컨텍스트 전환
+    else if ($editingElementId && $editingElementId !== model.id) {
+      stopEditing() // 전역 stop
+      startEdit()
+    }
+  }
+
+  function handleDoubleClick(e: MouseEvent) {
+    // 편집 중이면 단어 선택
+    if (isEditing) return
+
+    e.stopPropagation()
+    
+    // 다른 요소 편집 종료
+    if ($editingElementId && $editingElementId !== model.id) {
+      stopEditing()
+    }
+    
+    // 선택 후 편집 시작
+    if (onElementClick) onElementClick(e)
+    startEdit()
+    
+    // 전체 텍스트 선택
+    if (elementRef && isEditing) {
+      const selection = window.getSelection()
+      const range = document.createRange()
+      range.selectNodeContents(elementRef)
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (pluginModel.state.isEditing && e.key === "Enter") {
-      return
+    if (isEditing) {
+      if (e.key === "Escape") {
+        e.preventDefault()
+        e.stopPropagation()
+        stopEdit()
+      } else if (e.key === " " || e.key === "Enter" || e.key.length === 1) {
+        e.stopPropagation()
+      }
     }
-    pluginModel.handleKeydown(e.key)
-  }
-
-  function handleInput(e: Event) {
-    const target = e.target as HTMLElement
-    pluginModel.setValue(target.textContent || "")
-
-    // 히스토리 이벤트 발생
-    const historyEvent = new CustomEvent("textChanged", {
-      detail: { element: target, text: target.textContent },
-    })
-    document.dispatchEvent(historyEvent)
   }
 
   function handleBlur() {
-    setTimeout(() => {
-      const activeEl = document.activeElement as HTMLElement
-      if (activeEl !== elementRef) {
-        pluginModel.stopEdit()
-      }
-    }, 0)
+    if (isEditing && document.activeElement !== elementRef) {
+      stopEdit()
+    }
   }
 </script>
 
@@ -156,14 +135,17 @@
   class="inline-block {model.className}"
   data-editable="text"
   data-selected={isSelected ? "true" : null}
-  data-editing={pluginModel.state.isEditing ? "true" : null}
   onclick={handleClick}
   ondblclick={handleDoubleClick}
   onkeydown={handleKeydown}
-  oninput={handleInput}
   onblur={handleBlur}
   {...model.attributes}
 >
-  {pluginModel.state.value}
+  {model.content}
 </span>
 
+<style>
+  [data-selected="true"] {
+    box-shadow: 0 0 0 3px #3b82f6;
+  }
+</style>

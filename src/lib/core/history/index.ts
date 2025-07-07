@@ -394,7 +394,7 @@ export class LoroHistoryManager implements HistoryManager {
   // DOM structure history methods
   saveState(): void {
     // This is a simple implementation - we can improve it later if needed
-    console.log("saveState called - using structural history")
+    // saveState called - using structural history
   }
 
   saveStructuralState(container: HTMLElement): void {

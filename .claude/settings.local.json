@@ -35,7 +35,17 @@
       "Bash(open test-build.html)",
       "Bash(npm search:*)",
       "Bash(npm install:*)",
-      "Bash(pnpm i:*)"
+      "Bash(pnpm i:*)",
+      "Bash(pnpm knip:*)",
+      "Bash(ls:*)",
+      "Bash(chmod:*)",
+      "Bash(./cleanup-unused-files.sh:*)",
+      "Bash(tree:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(npx svelte-check:*)",
+      "Bash(touch:*)",
+      "Bash(timeout 10 pnpm preview)",
+      "Bash(open:*)"
     ],
     "deny": []
   }

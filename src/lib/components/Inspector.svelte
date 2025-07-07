@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Copy, Trash2, Edit2, Type, FileText } from "lucide-svelte"
+  import { Copy, Trash2, Edit2, Type, FileText, Maximize2 } from "lucide-svelte"
+  import { currentSelectionSize, formatSize, formatSizeDetailed, formatPosition } from "$lib/core/selection"
 
   interface Props {
     selectedElement: HTMLElement | null
@@ -13,12 +14,12 @@
     selectedElement
       ? {
           tag: selectedElement.tagName.toLowerCase(),
-        content: selectedElement.textContent || "",
-        maxLength: selectedElement.dataset.maxLength,
-        classes: Array.from(selectedElement.classList).join(" "),
-        type: selectedType,
-      }
-    : null
+          content: selectedElement.textContent || "",
+          maxLength: selectedElement.dataset.maxLength,
+          classes: Array.from(selectedElement.classList).join(" "),
+          type: selectedType,
+        }
+      : null,
   )
 
   function copyElement() {
@@ -34,7 +35,7 @@
 
   function editElement() {
     if (!selectedElement || selectedType !== "text") return
-    selectedElement.focus()
+    // selectedElement.focus()
   }
 </script>
 
@@ -74,6 +75,30 @@
           {/if}
         </div>
       </div>
+
+      <!-- Size Information -->
+      {#if $currentSelectionSize}
+        <div class="card p-4">
+          <div class="mb-3 flex items-center gap-2">
+            <Maximize2 class="h-4 w-4 text-stone-600" />
+            <h4 class="text-sm font-medium text-stone-900">Size & Position</h4>
+          </div>
+          <div class="space-y-2 text-xs">
+            <div class="flex justify-between">
+              <span class="text-stone-600">Dimensions</span>
+              <code class="bg-stone-100 px-2 py-1 text-stone-800">{formatSize($currentSelectionSize)}</code>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-stone-600">Position</span>
+              <code class="bg-stone-100 px-2 py-1 text-stone-800">{formatPosition($currentSelectionSize)}</code>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-stone-600">Area</span>
+              <code class="bg-stone-100 px-2 py-1 text-stone-800">{$currentSelectionSize.area}px²</code>
+            </div>
+          </div>
+        </div>
+      {/if}
 
       <!-- Content Preview -->
       {#if selectedType === "text" && elementInfo?.content}

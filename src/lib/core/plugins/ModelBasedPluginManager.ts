@@ -3,6 +3,12 @@ import { pluginStore } from "./models/PluginStore.svelte"
 import type { PluginModel } from "./models/PluginModel.svelte"
 
 export class ModelBasedPluginManager {
+  // 플러그인 매니저 초기화
+  initialize(): void {
+    // 필요한 초기화 로직이 있다면 여기에 추가
+    console.log("ModelBasedPluginManager initialized")
+  }
+
   // 요소 초기화 - 모델 생성
   initElement(element: HTMLElement): void {
     const editableType = element.getAttribute("data-editable")

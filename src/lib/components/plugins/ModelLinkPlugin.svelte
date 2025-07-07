@@ -12,23 +12,44 @@
   function handleClick(e: MouseEvent) {
     // 편집 모드에서는 링크 클릭 방지
     e.preventDefault()
-    // Prevent event propagation to avoid document click handler
+    // Stop propagation to prevent bubbling
     e.stopPropagation()
 
+    // For selection, we need to ensure the event target has the data-editable attribute
+    // Create a synthetic event with the container as the target
+    const container = e.currentTarget as HTMLElement
+    const syntheticEvent = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      clientX: e.clientX,
+      clientY: e.clientY,
+      shiftKey: e.shiftKey,
+      metaKey: e.metaKey,
+      ctrlKey: e.ctrlKey
+    })
+    
+    // Define the target property to point to our container
+    Object.defineProperty(syntheticEvent, 'target', {
+      value: container,
+      enumerable: true
+    })
+    
     // Always call the parent click handler first (for selection)
     if (onElementClick) {
-      console.log("🔄 Calling parent onElementClick from ModelLinkPlugin")
-      onElementClick(e)
+      onElementClick(syntheticEvent)
     }
 
-    // If already selected, also open link editor
+    // If already selected, open link editor (edit mode)
     if (isSelected) {
-      console.log("🔗 Opening link editor since element is already selected")
+      // Element is selected, open link editor
       const newUrl = prompt("Enter new URL:", model.href)
       const newText = prompt("Enter new link text:", model.text)
 
       if (newUrl !== null && newText !== null) {
-        console.log("🔗 Link changed:", { id: model.id, href: newUrl, text: newText })
+        // Update model
+        model.href = newUrl
+        model.text = newText
 
         // Dispatch history event
         const historyEvent = new CustomEvent("linkChanged", {
@@ -62,7 +83,6 @@
   }
 
   [data-selected="true"] {
-    outline: 3px solid #f59e0b;
-    outline-offset: 3px;
+    box-shadow: 0 0 0 3px #f59e0b;
   }
 </style>

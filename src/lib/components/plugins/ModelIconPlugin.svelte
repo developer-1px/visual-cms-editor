@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { IconModel } from "$lib/core/models/TemplateModels"
+  import { onMount } from "svelte"
 
   interface Props {
     model: IconModel
@@ -8,62 +9,81 @@
   }
 
   let { model, isSelected = false, onElementClick }: Props = $props()
+  let container: HTMLElement
 
   function handleClick(e: MouseEvent) {
-    // Prevent event propagation to avoid document click handler
+    e.preventDefault()
     e.stopPropagation()
 
-    // Always call the parent click handler first (for selection)
     if (onElementClick) {
-      console.log("🔄 Calling parent onElementClick from ModelIconPlugin")
       onElementClick(e)
     }
 
-    // If already selected, also open icon picker
+    // If already selected, open icon picker (edit mode)
     if (isSelected) {
-      console.log("🎯 Opening icon picker since element is already selected")
-      const newIcon = prompt("Enter new icon path data (simplified):")
+      const newIcon = prompt("Enter new icon SVG HTML:", model.outerHTML)
       if (newIcon) {
-        console.log("🎯 Icon changed:", { id: model.id, pathData: newIcon })
-
-        // Dispatch history event
+        model.outerHTML = newIcon
         const historyEvent = new CustomEvent("iconChanged", {
-          detail: { element: document.getElementById(model.id), pathData: newIcon },
+          detail: { element: e.currentTarget, outerHTML: newIcon },
         })
         document.dispatchEvent(historyEvent)
       }
     }
   }
+
+  onMount(() => {
+    if (container) {
+      // Parse and modify the SVG
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(model.outerHTML, 'image/svg+xml')
+      const svg = doc.querySelector('svg')
+      
+      if (svg) {
+        // Add attributes
+        svg.setAttribute('id', model.id)
+        svg.setAttribute('data-editable', 'icon')
+        svg.setAttribute('data-selected', isSelected ? 'true' : 'false')
+        svg.classList.add('icon-svg')
+        if (model.className) {
+          model.className.split(' ').forEach(cls => svg.classList.add(cls))
+        }
+        
+        // Add click handler
+        svg.addEventListener('click', handleClick)
+        
+        // Replace container content with the SVG
+        container.innerHTML = ''
+        container.appendChild(svg)
+        
+        return () => {
+          svg.removeEventListener('click', handleClick)
+        }
+      }
+    }
+  })
+
+  // Update SVG attributes when selection changes
+  $effect(() => {
+    const svg = container?.querySelector('svg')
+    if (svg) {
+      svg.setAttribute('data-selected', isSelected ? 'true' : 'false')
+    }
+  })
 </script>
 
-<div
-  id={model.id}
-  class="icon-container {model.className}"
-  data-editable="icon"
-  data-selected={isSelected ? "true" : null}
-  onclick={handleClick}
-  {...model.attributes}
->
-  <svg
-    viewBox={model.viewBox || "0 0 24 24"}
-    fill="currentColor"
-    width="24"
-    height="24"
-  >
-    <path d={model.pathData} />
-  </svg>
-</div>
+<!-- Temporary container that will be replaced with SVG -->
+<span bind:this={container} style="display: contents;">
+  {@html model.outerHTML}
+</span>
 
 <style>
-  .icon-container {
-    position: relative;
+  :global(.icon-svg) {
     cursor: pointer;
     transition: all 0.2s ease;
-    display: inline-block;
   }
 
-  [data-selected="true"] {
-    outline: 3px solid #f59e0b;
-    outline-offset: 3px;
+  :global(.icon-svg[data-selected="true"]) {
+    filter: drop-shadow(0 0 3px #f59e0b);
   }
 </style>

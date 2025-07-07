@@ -24,7 +24,7 @@ export const textPlugin: EditablePlugin = {
 
   onClick(element: HTMLElement): void {
     // Handle text element click - start editing for single click on already selected element
-    console.log("Text element clicked:", element)
+    // Text element clicked - checking selection state
 
     // Check if element is already selected and this is a second click
     if (element.hasAttribute("data-selected")) {
@@ -38,12 +38,15 @@ export const textPlugin: EditablePlugin = {
   },
 
   onKeydown(element: HTMLElement, event: KeyboardEvent): void {
+    // 편집 모드에서는 기본 키 동작을 허용
     if (event.key === "Escape") {
       event.preventDefault()
       this.stopEdit(element)
+      return
     }
-    // Enter key will naturally create line breaks in contenteditable
-    // No need to prevent default or stop editing
+    
+    // Enter, Space 등 다른 키들은 자연스럽게 처리되도록 함
+    // contenteditable에서 기본 동작 허용
   },
 
   getValue(element: HTMLElement): string {
@@ -62,24 +65,11 @@ export const textPlugin: EditablePlugin = {
     element.textContent = ""
   },
 
-  validate(element: HTMLElement, value: string): { valid: boolean; message?: string } {
+  async validate(element: HTMLElement, value: string): Promise<{ valid: boolean; message?: string }> {
     const constraints = this.getConstraints(element)
-
-    if (constraints.maxLength && value.length > constraints.maxLength) {
-      return {
-        valid: false,
-        message: `Text exceeds maximum length of ${constraints.maxLength} characters`,
-      }
-    }
-
-    if (constraints.minLength && value.length < constraints.minLength) {
-      return {
-        valid: false,
-        message: `Text must be at least ${constraints.minLength} characters`,
-      }
-    }
-
-    return { valid: true }
+    
+    const { isTextLengthValid } = await import("../../../utils/validation-helpers")
+    return isTextLengthValid(value, constraints)
   },
 
   getActions(element: HTMLElement): EditableAction[] {
@@ -113,41 +103,15 @@ export const textPlugin: EditablePlugin = {
 
   // Private methods
   startEdit(element: HTMLElement): void {
-    console.log("[TextPlugin] Starting edit mode for:", element)
-
-    // Set contenteditable with plaintext-only to prevent HTML formatting
-    element.setAttribute("contenteditable", "plaintext-only")
-    element.setAttribute("data-editing", "true")
-
-    // white-space: pre-wrap은 이제 CSS에서 항상 적용됨
-
-    // Focus the element
-    element.focus()
-
-    // Don't select all text - let the cursor stay where clicked
-    // The browser will automatically place the cursor at the click position
-
-    // Add event listeners for editing
-    element.addEventListener("blur", this.handleBlur.bind(this))
-    element.addEventListener("input", this.handleTextInput.bind(this))
-    element.addEventListener("keydown", (e) => this.onKeydown(element, e))
+    console.log('🚫 Legacy text plugin startEdit called - SHOULD NOT BE USED')
+    // This method should not be called anymore
+    // ModelTextPlugin handles editing now
   },
 
   stopEdit(element: HTMLElement): void {
-    console.log("[TextPlugin] Stopping edit mode for:", element)
-
-    // Remove contenteditable
-    element.removeAttribute("contenteditable")
-    element.removeAttribute("data-editing")
-
-    // white-space는 CSS에서 항상 적용되므로 제거하지 않음
-
-    // Remove event listeners
-    element.removeEventListener("blur", this.handleBlur.bind(this))
-    element.removeEventListener("input", this.handleTextInput.bind(this))
-
-    // Blur the element
-    element.blur()
+    console.log('🚫 Legacy text plugin stopEdit called - SHOULD NOT BE USED')
+    // This method should not be called anymore
+    // ModelTextPlugin handles editing now
   },
 
   getConstraints(element: HTMLElement): Record<string, unknown> {
@@ -171,17 +135,15 @@ export const textPlugin: EditablePlugin = {
     document.dispatchEvent(historyEvent)
   },
 
+  handleFocus(e: FocusEvent): void {
+    console.log('🚫 Legacy text plugin handleFocus called - SHOULD NOT BE USED')
+    // This method should not be called anymore
+    // ModelTextPlugin handles focus events now
+  },
+
   handleBlur(e: FocusEvent): void {
-    const element = e.target as HTMLElement
-
-    // Use setTimeout to check if focus moved to another element
-    setTimeout(() => {
-      const activeEl = document.activeElement as HTMLElement
-
-      // If focus moved away from this element, stop editing
-      if (activeEl !== element) {
-        this.stopEdit(element)
-      }
-    }, 0)
+    console.log('🚫 Legacy text plugin handleBlur called - SHOULD NOT BE USED')
+    // This method should not be called anymore
+    // ModelTextPlugin handles blur events now
   },
 }
