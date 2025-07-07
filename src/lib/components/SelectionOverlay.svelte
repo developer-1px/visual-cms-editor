@@ -51,16 +51,24 @@
       return { x: 0, y: 0, visible: false }
     }
 
-    // Calculate position relative to viewport
+    // Calculate position relative to the container (for absolute positioning)
     const rect = targetElement.getBoundingClientRect()
     
-    // Position overlay above the element
-    const x = rect.left + rect.width / 2 - (overlayElement.offsetWidth || 80) / 2
-    const y = rect.top - (overlayElement.offsetHeight || 40) - 8
+    // Find the editor container for relative positioning
+    const editorContainer = document.querySelector('.relative.flex-1.overflow-auto') || document.body
+    const containerRect = editorContainer.getBoundingClientRect()
+    
+    // Calculate position relative to container
+    const relativeX = rect.left - containerRect.left + rect.width / 2 - (overlayElement.offsetWidth || 80) / 2
+    const relativeY = rect.top - containerRect.top - (overlayElement.offsetHeight || 40) - 8
+    
+    // Add scroll offset for absolute positioning
+    const scrollTop = (editorContainer as HTMLElement).scrollTop || 0
+    const scrollLeft = (editorContainer as HTMLElement).scrollLeft || 0
 
     return {
-      x: Math.max(8, x),
-      y: Math.max(8, y),
+      x: Math.max(8, relativeX + scrollLeft),
+      y: Math.max(8, relativeY + scrollTop),
       visible: true
     }
   })
@@ -126,7 +134,7 @@
 <!-- Always render overlay but control visibility -->
 <div
   bind:this={overlayElement}
-  class="animate-fade-in floating-ui fixed z-50 flex items-center gap-1 px-1 py-1 shadow-xl {position.visible && !$isSelectionEmpty
+  class="animate-fade-in floating-ui absolute z-50 flex items-center gap-1 px-1 py-1 shadow-xl {position.visible && !$isSelectionEmpty
     ? 'block'
     : 'hidden'}"
   style="
